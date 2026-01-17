@@ -32,10 +32,16 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
 const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger, selectedInputId }) => {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
 
-  const findMappings = useCallback((type: 'keyboard' | 'midi', value: string | number) => {
+  const findMappings = useCallback((type: 'keyboard' | 'midi', value: string | number, channel?: number) => {
     return song.mappings.filter(m => {
       if (!m.isEnabled) return false;
       if (m.triggerType !== type) return false;
+
+      // For MIDI, check channel first
+      if (type === 'midi' && channel !== undefined) {
+        const channelMatch = m.triggerChannel === 0 || m.triggerChannel === channel;
+        if (!channelMatch) return false;
+      }
 
       if (m.isRange) {
         if (type === 'midi') {
@@ -82,13 +88,15 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger,
     
     const onNoteOn = (e: any) => {
       const pitch = e.note.number;
-      const mappings = findMappings('midi', pitch);
+      const channel = e.message.channel;
+      const mappings = findMappings('midi', pitch, channel);
       mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false));
     };
     
     const onNoteOff = (e: any) => {
       const pitch = e.note.number;
-      const mappings = findMappings('midi', pitch);
+      const channel = e.message.channel;
+      const mappings = findMappings('midi', pitch, channel);
       mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true));
     };
     
@@ -139,7 +147,7 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger,
                 >
                   <div className="flex items-center justify-between w-full">
                     <span className="text-[9px] font-black opacity-40 uppercase truncate pr-2">
-                      {map.triggerType === 'keyboard' ? '⌨️' : '🎹'} {triggerDisplay}
+                      {map.triggerType === 'keyboard' ? '⌨️' : '🎹'} {triggerDisplay} {map.triggerType === 'midi' && `(Ch ${map.triggerChannel === 0 ? 'All' : map.triggerChannel})`}
                     </span>
                     <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-white animate-pulse shadow-[0_0_8px_white]' : 'bg-slate-600'}`}></div>
                   </div>
@@ -172,7 +180,8 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger,
                       <div className="w-1.5 h-6 bg-emerald-500 rounded-full animate-bounce shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                       <div className="w-1.5 h-6 bg-emerald-500 rounded-full animate-bounce shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{animationDelay:'0.1s'}}></div>
                     </div>
-                    {an.duration && <DurationBar duration={an.duration} />}
+                    {/* Fix: changed duration to durationMs as per ActiveNoteState interface */}
+                    {an.durationMs && <DurationBar duration={an.durationMs} />}
                   </div>
                 ))}
               </div>

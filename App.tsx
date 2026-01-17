@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { midiService } from './webMidiService';
-import { Song, ProjectData, SequenceMode, InputMapping, NotePreset, Sequence, ActiveNoteState } from './types';
+import { Song, ProjectData, SequenceMode, InputMapping, NotePreset, Sequence, ActiveNoteState, NoteItem, SequenceItem, GlobalMapping, DurationUnit } from './types';
 import Navigation from './components/Navigation';
 import Editor from './components/Editor';
 import Performance from './components/Performance';
 import Settings from './components/Settings';
 import { v4 as uuidv4 } from 'uuid';
-import { WebMidi, Input, Output, Note } from 'webmidi';
 
 const DEFAULT_PROJECT: ProjectData = {
   name: "New Performance Set",
@@ -22,7 +21,8 @@ const DEFAULT_PROJECT: ProjectData = {
     }
   ],
   selectedInputId: '',
-  selectedOutputId: ''
+  selectedOutputId: '',
+  globalMappings: []
 };
 
 const App: React.FC = () => {
@@ -31,14 +31,9 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'editor' | 'performance' | 'settings'>('performance');
   const [isMidiReady, setIsMidiReady] = useState(false);
   
-  // Performance State
   const [activeMidiNotes, setActiveMidiNotes] = useState<ActiveNoteState[]>([]);
   const stepIndicesRef = useRef<Record<string, number>>({});
-  
-  // triggerId (mapping ID 등) -> targetPresetId
   const lastActivePresetForTriggerRef = useRef<Map<string, string>>(new Map());
-
-  // Track timers for specific notes to allow cancellation on release
   const noteTimersRef = useRef<Map<string, { onTimeout?: any, offTimeout?: any, isPlaying: boolean }>>(new Map());
 
   const currentSong = project.songs.find(s => s.id === currentSongId) || project.songs[0];
@@ -57,6 +52,210 @@ const App: React.FC = () => {
   const handleUpdateProject = useCallback((updater: (prev: ProjectData) => ProjectData) => {
     setProject(prev => updater(prev));
   }, []);
+
+  const sendNoteOn = useCallback((pitch: number, velocity: number, channel: number, durationMs: number | null) => {
+    const output = midiService.getOutputById(project.selectedOutputId);
+    if (!output) return;
+    output.playNote(pitch, { attack: velocity, channels: [channel] as any });
+    setActiveMidiNotes(prev => [...prev, { pitch, channel, startTime: Date.now(), durationMs }]);
+  }, [project.selectedOutputId]);
+
+  const sendNoteOff = useCallback((pitch: number, channel: number) => {
+    const output = midiService.getOutputById(project.selectedOutputId);
+    if (!output) return;
+    output.stopNote(pitch, { channels: [channel] as any });
+    setActiveMidiNotes(prev => prev.filter(n => !(n.pitch === pitch && n.channel === channel)));
+  }, [project.selectedOutputId]);
+
+  const stopAllNotes = useCallback(() => {
+    const output = midiService.getOutputById(project.selectedOutputId);
+    if (output) {
+      for (let i = 1; i <= 16; i++) {
+        output.sendControlChange(123, 0, { channels: [i] as any });
+      }
+    }
+    setActiveMidiNotes([]);
+    noteTimersRef.current.forEach(timer => {
+      if (timer.onTimeout) clearTimeout(timer.onTimeout);
+      if (timer.offTimeout) clearTimeout(timer.offTimeout);
+    });
+    noteTimersRef.current.clear();
+  }, [project.selectedOutputId]);
+
+  const resetAllSequences = useCallback(() => {
+    stepIndicesRef.current = {};
+    lastActivePresetForTriggerRef.current.clear();
+    stopAllNotes();
+  }, [stopAllNotes]);
+
+  const calculateMs = useCallback((value: number, unit: DurationUnit, bpm: number) => {
+    if (unit === 'ms') return value;
+    return (value * 60000) / bpm;
+  }, []);
+
+  const triggerDirectNote = useCallback((note: Omit<NoteItem, 'id'>, idSuffix: string = '', bpm: number = currentSong.bpm) => {
+    const timerKey = `direct_${idSuffix}_${note.pitch}_${Date.now()}`;
+    const state: { onTimeout?: any, offTimeout?: any, isPlaying: boolean } = { isPlaying: false };
+    
+    const durationMs = note.duration !== null ? calculateMs(note.duration, note.durationUnit, bpm) : null;
+
+    state.onTimeout = setTimeout(() => {
+      state.isPlaying = true;
+      state.onTimeout = undefined;
+      sendNoteOn(note.pitch, note.velocity, note.channel, durationMs);
+      if (durationMs !== null) {
+        state.offTimeout = setTimeout(() => {
+          sendNoteOff(note.pitch, note.channel);
+          noteTimersRef.current.delete(timerKey);
+        }, durationMs);
+      }
+    }, note.preDelay);
+    noteTimersRef.current.set(timerKey, state);
+  }, [sendNoteOn, sendNoteOff, calculateMs, currentSong.bpm]);
+
+  const triggerPreset = useCallback((presetId: string, isRelease: boolean = false, overrideDuration: number | null = null, overrideUnit: DurationUnit = 'ms', bpm: number = currentSong.bpm) => {
+    const preset = currentSong.presets.find(p => p.id === presetId);
+    if (!preset) return;
+
+    preset.notes.forEach(note => {
+      const timerKey = `${presetId}_${note.id}`;
+      const existing = noteTimersRef.current.get(timerKey);
+      
+      let durationMs: number | null = null;
+      if (overrideDuration !== null) {
+        durationMs = calculateMs(overrideDuration, overrideUnit, bpm);
+      } else if (note.duration !== null) {
+        durationMs = calculateMs(note.duration, note.durationUnit, bpm);
+      }
+
+      if (isRelease) {
+        if (existing && durationMs === null) {
+          if (existing.onTimeout) clearTimeout(existing.onTimeout);
+          if (existing.isPlaying) sendNoteOff(note.pitch, note.channel);
+          noteTimersRef.current.delete(timerKey);
+        }
+      } else {
+        if (existing) {
+          if (existing.onTimeout) clearTimeout(existing.onTimeout);
+          if (existing.offTimeout) clearTimeout(existing.offTimeout);
+          if (existing.isPlaying) sendNoteOff(note.pitch, note.channel);
+        }
+
+        const state: { onTimeout?: any, offTimeout?: any, isPlaying: boolean } = { isPlaying: false };
+        state.onTimeout = setTimeout(() => {
+          state.isPlaying = true;
+          state.onTimeout = undefined;
+          sendNoteOn(note.pitch, note.velocity, note.channel, durationMs);
+          if (durationMs !== null) {
+            state.offTimeout = setTimeout(() => {
+              sendNoteOff(note.pitch, note.channel);
+              noteTimersRef.current.delete(timerKey);
+            }, durationMs);
+          }
+        }, note.preDelay);
+        noteTimersRef.current.set(timerKey, state);
+      }
+    });
+  }, [currentSong, sendNoteOn, sendNoteOff, calculateMs]);
+
+  const triggerSequenceItem = useCallback((item: SequenceItem, bpm: number) => {
+    if (item.type === 'preset' && item.targetId) {
+      triggerPreset(item.targetId, false, item.overrideDuration ?? null, item.overrideDurationUnit ?? 'ms', bpm);
+    } else if (item.type === 'note' && item.noteData) {
+      triggerDirectNote(item.noteData, item.id, bpm);
+    }
+  }, [triggerPreset, triggerDirectNote]);
+
+  const triggerSequence = useCallback((seqId: string, mappingId: string, isRelease: boolean = false) => {
+    const seq = currentSong.sequences.find(s => s.id === seqId);
+    if (!seq) return;
+
+    const effectiveBpm = seq.bpm || currentSong.bpm;
+
+    if (seq.mode === SequenceMode.STEP) {
+      if (isRelease) {
+        const lastPresetId = lastActivePresetForTriggerRef.current.get(mappingId);
+        if (lastPresetId) triggerPreset(lastPresetId, true, null, 'ms', effectiveBpm);
+      } else {
+        const currentIndex = stepIndicesRef.current[seqId] || 0;
+        const item = seq.items[currentIndex];
+        if (item) {
+          if (item.type === 'preset') lastActivePresetForTriggerRef.current.set(mappingId, item.targetId!);
+          triggerSequenceItem(item, effectiveBpm);
+        }
+        stepIndicesRef.current[seqId] = (currentIndex + 1) % seq.items.length;
+      }
+    } else if (seq.mode === SequenceMode.AUTO) {
+      if (!isRelease) {
+        const msPerBeat = 60000 / effectiveBpm;
+        
+        seq.items.forEach(item => {
+          const delayMs = item.beatPosition * msPerBeat;
+          setTimeout(() => triggerSequenceItem(item, effectiveBpm), delayMs);
+        });
+      }
+    }
+  }, [currentSong, triggerPreset, triggerSequenceItem]);
+
+  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence', targetId: string, isRelease: boolean) => {
+    if (actionType === 'preset') triggerPreset(targetId, isRelease);
+    else if (actionType === 'sequence') triggerSequence(targetId, mappingId, isRelease);
+  }, [triggerPreset, triggerSequence]);
+
+  const handleGlobalActionTrigger = useCallback((action: GlobalMapping) => {
+    if (!action.isEnabled) return;
+    const currentIndex = project.songs.findIndex(s => s.id === currentSongId);
+    
+    switch (action.actionType) {
+      case 'PREV_SONG':
+        if (currentIndex > 0) setCurrentSongId(project.songs[currentIndex - 1].id);
+        break;
+      case 'NEXT_SONG':
+        if (currentIndex < project.songs.length - 1) setCurrentSongId(project.songs[currentIndex + 1].id);
+        break;
+      case 'GOTO_SONG':
+        const targetIdx = (action.actionValue || 1) - 1;
+        if (project.songs[targetIdx]) setCurrentSongId(project.songs[targetIdx].id);
+        break;
+      case 'RESET_SEQUENCES':
+        resetAllSequences();
+        break;
+    }
+  }, [project.songs, currentSongId, resetAllSequences]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      project.globalMappings.forEach(gm => {
+        if (gm.isEnabled && gm.triggerType === 'keyboard' && gm.triggerValue === e.key) {
+          handleGlobalActionTrigger(gm);
+        }
+      });
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [project.globalMappings, handleGlobalActionTrigger]);
+
+  useEffect(() => {
+    const input = midiService.getInputById(project.selectedInputId);
+    if (!input) return;
+    
+    const onNoteOn = (e: any) => {
+      const pitch = e.note.number;
+      const channel = e.message.channel; // WebMidi channel 1-16
+      project.globalMappings.forEach(gm => {
+        if (gm.isEnabled && gm.triggerType === 'midi' && Number(gm.triggerValue) === pitch) {
+          const channelMatch = gm.triggerChannel === 0 || gm.triggerChannel === channel;
+          if (channelMatch) {
+            handleGlobalActionTrigger(gm);
+          }
+        }
+      });
+    };
+    
+    input.addListener('noteon', onNoteOn);
+    return () => { input.removeListener('noteon', onNoteOn); };
+  }, [project.selectedInputId, project.globalMappings, handleGlobalActionTrigger]);
 
   const saveProject = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project, null, 2));
@@ -83,112 +282,6 @@ const App: React.FC = () => {
     };
     reader.readAsText(file);
   };
-
-  const stopAllNotes = useCallback(() => {
-    const output = midiService.getOutputById(project.selectedOutputId);
-    if (output) {
-      for (let i = 1; i <= 16; i++) {
-        output.sendControlChange(123, 0, { channels: [i] as any });
-      }
-    }
-    setActiveMidiNotes([]);
-    noteTimersRef.current.forEach(timer => {
-      if (timer.onTimeout) clearTimeout(timer.onTimeout);
-      if (timer.offTimeout) clearTimeout(timer.offTimeout);
-    });
-    noteTimersRef.current.clear();
-  }, [project.selectedOutputId]);
-
-  const sendNoteOn = useCallback((pitch: number, velocity: number, channel: number, duration: number | null) => {
-    const output = midiService.getOutputById(project.selectedOutputId);
-    if (!output) return;
-    output.playNote(pitch, { attack: velocity, channels: [channel] as any });
-    setActiveMidiNotes(prev => [...prev, { pitch, channel, startTime: Date.now(), duration }]);
-  }, [project.selectedOutputId]);
-
-  const sendNoteOff = useCallback((pitch: number, channel: number) => {
-    const output = midiService.getOutputById(project.selectedOutputId);
-    if (!output) return;
-    output.stopNote(pitch, { channels: [channel] as any });
-    setActiveMidiNotes(prev => prev.filter(n => !(n.pitch === pitch && n.channel === channel)));
-  }, [project.selectedOutputId]);
-
-  const triggerPreset = useCallback((presetId: string, isRelease: boolean = false) => {
-    const preset = currentSong.presets.find(p => p.id === presetId);
-    if (!preset) return;
-
-    preset.notes.forEach(note => {
-      const timerKey = `${presetId}_${note.id}`;
-      const existing = noteTimersRef.current.get(timerKey);
-
-      if (isRelease) {
-        if (existing) {
-          if (note.duration === null) {
-            if (existing.onTimeout) clearTimeout(existing.onTimeout);
-            if (existing.isPlaying) {
-              sendNoteOff(note.pitch, note.channel);
-            }
-            noteTimersRef.current.delete(timerKey);
-          }
-        }
-      } else {
-        if (existing) {
-          if (existing.onTimeout) clearTimeout(existing.onTimeout);
-          if (existing.offTimeout) clearTimeout(existing.offTimeout);
-          if (existing.isPlaying) sendNoteOff(note.pitch, note.channel);
-        }
-
-        const state: { onTimeout?: any, offTimeout?: any, isPlaying: boolean } = { isPlaying: false };
-        state.onTimeout = setTimeout(() => {
-          state.isPlaying = true;
-          state.onTimeout = undefined;
-          sendNoteOn(note.pitch, note.velocity, note.channel, note.duration);
-          if (note.duration !== null) {
-            state.offTimeout = setTimeout(() => {
-              sendNoteOff(note.pitch, note.channel);
-              noteTimersRef.current.delete(timerKey);
-            }, note.duration);
-          }
-        }, note.preDelay);
-        noteTimersRef.current.set(timerKey, state);
-      }
-    });
-  }, [currentSong, sendNoteOn, sendNoteOff]);
-
-  const triggerSequence = useCallback((seqId: string, mappingId: string, isRelease: boolean = false) => {
-    const seq = currentSong.sequences.find(s => s.id === seqId);
-    if (!seq) return;
-
-    if (seq.mode === SequenceMode.STEP) {
-      if (isRelease) {
-        const lastPresetId = lastActivePresetForTriggerRef.current.get(mappingId);
-        if (lastPresetId) {
-          triggerPreset(lastPresetId, true);
-        }
-      } else {
-        const currentIndex = stepIndicesRef.current[seqId] || 0;
-        const item = seq.items[currentIndex];
-        if (item && item.type === 'preset') {
-          lastActivePresetForTriggerRef.current.set(mappingId, item.targetId);
-          triggerPreset(item.targetId, false);
-        }
-        stepIndicesRef.current[seqId] = (currentIndex + 1) % seq.items.length;
-      }
-    } else if (seq.mode === SequenceMode.AUTO) {
-      if (!isRelease) {
-        seq.items.forEach(item => {
-          if (item.type === 'preset') {
-            setTimeout(() => triggerPreset(item.targetId, false), item.delay);
-          }
-        });
-      }
-    }
-  }, [currentSong, triggerPreset]);
-
-  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence', targetId: string, isRelease: boolean) => {
-    if (actionType === 'preset') triggerPreset(targetId, isRelease);
-    else if (actionType === 'sequence') triggerSequence(targetId, mappingId, isRelease);
-  }, [triggerPreset, triggerSequence]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-950 text-slate-100 font-sans">
@@ -236,6 +329,8 @@ const App: React.FC = () => {
                   songs: prev.songs.map(s => s.id === updated.id ? updated : s)
                 }));
               }}
+              sendNoteOn={sendNoteOn}
+              sendNoteOff={sendNoteOff}
             />
           )}
           {activeTab === 'performance' && (
