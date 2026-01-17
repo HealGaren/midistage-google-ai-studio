@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
-import { Song, SequenceMode, NotePreset, Sequence } from '../types';
+import { Song, SequenceMode, NotePreset, Sequence, Scene } from '../types';
 import { EditorSidebar } from './editor/EditorSidebar';
 import { PresetEditor } from './editor/PresetEditor';
 import { SequenceEditor } from './editor/SequenceEditor';
 import { MappingEditor } from './editor/MappingEditor';
+import { SceneEditor } from './editor/SceneEditor';
 
 interface EditorProps {
   song: Song;
@@ -15,7 +16,7 @@ interface EditorProps {
 }
 
 const Editor: React.FC<EditorProps> = ({ song, onUpdateSong, sendNoteOn, sendNoteOff, selectedInputId }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'presets' | 'sequences' | 'mappings'>('presets');
+  const [activeSubTab, setActiveSubTab] = useState<'presets' | 'sequences' | 'scenes' | 'mappings'>('presets');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(song.presets?.[0]?.id || null);
   const [selectedSequenceId, setSelectedSequenceId] = useState<string | null>(song.sequences?.[0]?.id || null);
 
@@ -38,7 +39,7 @@ const Editor: React.FC<EditorProps> = ({ song, onUpdateSong, sendNoteOn, sendNot
           </div>
         </div>
         <div className="flex gap-12 border-b border-slate-800/50">
-          {(['presets', 'sequences', 'mappings'] as const).map(tab => (
+          {(['presets', 'sequences', 'scenes', 'mappings'] as const).map(tab => (
             <button 
               key={tab} 
               onClick={() => setActiveSubTab(tab)} 
@@ -88,6 +89,10 @@ const Editor: React.FC<EditorProps> = ({ song, onUpdateSong, sendNoteOn, sendNot
               )}
             </div>
           </div>
+        )}
+
+        {activeSubTab === 'scenes' && (
+          <SceneEditor song={song} onUpdateSong={onUpdateSong} />
         )}
 
         {activeSubTab === 'mappings' && (

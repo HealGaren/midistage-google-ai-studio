@@ -31,7 +31,7 @@ export interface NotePreset {
   name: string;
   notes: NoteItem[];
   glissando?: GlissandoConfig;
-  folderId?: string | null; // 폴더 소속 ID
+  folderId?: string | null;
 }
 
 export interface PresetFolder {
@@ -46,10 +46,10 @@ export interface SequenceItem {
   type: SequenceItemType;
   targetId?: string; // Preset ID
   noteData?: Omit<NoteItem, 'id'>; // Direct note data
-  beatPosition: number; // Position in beats from the start (0, 0.5, 1, 1.25 etc)
-  overrideDuration?: number | null; // value in overrideDurationUnit
+  beatPosition: number; // Position in beats from the start
+  overrideDuration?: number | null;
   overrideDurationUnit?: DurationUnit;
-  sustainUntilNext?: boolean; // Sustain until next step is triggered
+  sustainUntilNext?: boolean;
 }
 
 export enum SequenceMode {
@@ -61,24 +61,30 @@ export interface Sequence {
   id: string;
   name: string;
   mode: SequenceMode;
-  items: SequenceItem[]; // Unified items for both modes
-  bpm?: number; // Sequence specific BPM override
-  gridSnap?: number; // Snap division (0.25 = 16th note, 0.5 = 8th note, etc)
+  items: SequenceItem[];
+  bpm?: number;
+  gridSnap?: number;
 }
 
 export type TriggerType = 'midi' | 'keyboard';
+export type MappingScope = 'global' | 'scene';
 
 export interface InputMapping {
   id: string;
-  triggerType: TriggerType;
-  isRange: boolean;
-  triggerValue: string | number;
-  triggerChannel: number; // 0 for Omni, 1-16 for specific
-  triggerStart?: string | number;
-  triggerEnd?: string | number;
-  actionType: 'preset' | 'sequence';
+  // Keyboard settings
+  keyboardValue: string; // comma separated keys, e.g. "j,k"
+  
+  // MIDI settings
+  midiValue: string; // comma separated notes, e.g. "60,62"
+  midiChannel: number; // 0 for Omni, 1-16
+  isMidiRange: boolean;
+  midiRangeStart: number;
+  midiRangeEnd: number;
+
+  actionType: 'preset' | 'sequence' | 'switch_scene';
   actionTargetId: string;
   isEnabled: boolean;
+  scope: MappingScope;
 }
 
 export type GlobalActionType = 'RESET_SEQUENCES' | 'PREV_SONG' | 'NEXT_SONG' | 'GOTO_SONG';
@@ -87,10 +93,16 @@ export interface GlobalMapping {
   id: string;
   triggerType: TriggerType;
   triggerValue: string | number;
-  triggerChannel: number; // 0 for Omni, 1-16 for specific
+  triggerChannel: number;
   actionType: GlobalActionType;
-  actionValue?: number; // Index for GOTO_SONG
+  actionValue?: number;
   isEnabled: boolean;
+}
+
+export interface Scene {
+  id: string;
+  name: string;
+  mappingIds: string[]; // List of local mapping IDs active in this scene
 }
 
 export interface Song {
@@ -101,6 +113,8 @@ export interface Song {
   presetFolders: PresetFolder[];
   sequences: Sequence[];
   mappings: InputMapping[];
+  scenes: Scene[];
+  activeSceneId: string;
 }
 
 export interface ProjectData {

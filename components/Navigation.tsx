@@ -12,7 +12,9 @@ interface NavigationProps {
 
 const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectSong, onUpdateProject }) => {
   const addSong = () => {
-    // FIX: Added missing presetFolders property to comply with Song interface
+    // Generate a default scene ID for the new song
+    const sceneId = uuidv4();
+    // Fix: Added missing 'mappingIds: []' to comply with Scene interface
     const newSong: Song = {
       id: uuidv4(),
       name: "Untitled Song",
@@ -20,7 +22,9 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
       presets: [],
       presetFolders: [],
       sequences: [],
-      mappings: []
+      mappings: [],
+      scenes: [{ id: sceneId, name: "Default Scene", mappingIds: [] }],
+      activeSceneId: sceneId
     };
     onUpdateProject(prev => ({ ...prev, songs: [...prev.songs, newSong] }));
     onSelectSong(newSong.id);

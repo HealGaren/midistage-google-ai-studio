@@ -30,6 +30,18 @@ export class MidiService {
     }
   }
 
+  // Force re-scan isn't a native WebMidi command (it's automatic), 
+  // but we can re-enable to satisfy some browser edge cases or just trigger UI updates.
+  async rescan(): Promise<void> {
+    if (WebMidi.enabled) {
+      // Browsers handle hot-plugging automatically, but calling enable again 
+      // can sometimes kickstart stuck permissions or interfaces.
+      await WebMidi.enable();
+    } else {
+      await this.init();
+    }
+  }
+
   getInputs(): Input[] {
     if (!WebMidi.enabled) return [];
     return WebMidi.inputs;

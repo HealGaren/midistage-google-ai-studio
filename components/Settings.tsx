@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ProjectData, GlobalMapping, TriggerType, GlobalActionType } from '../types';
 import { midiService } from '../webMidiService';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,9 +10,27 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
+  const [isRescanning, setIsRescanning] = useState(false);
+  // This state is used just to force a re-render when MIDI devices change
+  const [refreshKey, setRefreshKey] = useState(0);
+  
   const inputs = midiService.getInputs();
   const outputs = midiService.getOutputs();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleRescan = async () => {
+    setIsRescanning(true);
+    try {
+      await midiService.rescan();
+      // Force React to re-call midiService.getInputs() by updating state
+      setRefreshKey(prev => prev + 1);
+    } catch (err) {
+      console.error("Rescan failed", err);
+    } finally {
+      // Small delay for better UX feel
+      setTimeout(() => setIsRescanning(false), 600);
+    }
+  };
 
   const addGlobalMapping = () => {
     const newMapping: GlobalMapping = {
@@ -59,7 +77,6 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
         const content = e.target?.result;
         if (typeof content === 'string') {
           const importedProject = JSON.parse(content) as ProjectData;
-          // 간단한 스키마 검증 (최소 필드 체크)
           if (importedProject.songs && Array.isArray(importedProject.songs)) {
             onUpdateProject(() => importedProject);
             alert("Project loaded successfully!");
@@ -104,14 +121,28 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
 
       {/* Project Identity & MIDI IO */}
       <div className="space-y-6">
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Performance Name</label>
-          <input 
-            type="text" 
-            value={project.name}
-            onChange={(e) => onUpdateProject(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all"
-          />
+        <div className="flex items-center justify-between">
+            <div className="space-y-2 flex-1 mr-6">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Performance Name</label>
+                <input 
+                    type="text" 
+                    value={project.name}
+                    onChange={(e) => onUpdateProject(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all"
+                />
+            </div>
+            <div className="pt-6">
+                <button 
+                    onClick={handleRescan}
+                    disabled={isRescanning}
+                    className={`flex items-center gap-2 px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-700 transition-all ${isRescanning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                    <svg className={`w-3.5 h-3.5 ${isRescanning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {isRescanning ? 'Scanning...' : 'Rescan MIDI Devices'}
+                </button>
+            </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -256,9 +287,9 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
       <div className="p-8 bg-slate-900/50 border border-slate-800 rounded-3xl space-y-4">
         <h4 className="font-black text-sm text-indigo-400 uppercase tracking-[0.2em]">Usage & Setup Tip</h4>
         <div className="space-y-2 text-sm text-slate-400 leading-relaxed">
+          <p>• <strong>Rescan:</strong> Use the "Rescan MIDI Devices" button if you plug in a controller while the app is already open.</p>
           <p>• <strong>MIDI Mapping:</strong> You can now specify which MIDI channel (1-16) to listen to for each mapping. Select "All" for Omni-mode behavior.</p>
           <p>• <strong>Panic Key:</strong> Mapping a global "Reset All (Panic)" key is highly recommended for live performances to immediately stop all notes and reset sequences if something goes wrong.</p>
-          <p>• <strong>DAW Sync:</strong> Ensure your DAW is listening to the same MIDI output port. For virtual instruments, using a Virtual MIDI cable (like LoopMIDI or IAC Driver) is ideal.</p>
         </div>
       </div>
     </div>

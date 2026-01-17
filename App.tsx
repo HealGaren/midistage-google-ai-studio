@@ -9,10 +9,27 @@ import Performance from './components/Performance';
 import Settings from './components/Settings';
 import { v4 as uuidv4 } from 'uuid';
 
+const createDefaultSong = (name: string): Song => {
+  const sceneId = uuidv4();
+  return {
+    id: uuidv4(),
+    name,
+    bpm: 120,
+    presets: [],
+    presetFolders: [],
+    sequences: [],
+    mappings: [],
+    scenes: [{ id: sceneId, name: "Default Scene", mappingIds: [] }],
+    activeSceneId: sceneId
+  };
+};
+
 const DEFAULT_PROJECT: ProjectData = {
   name: "New Performance Set",
-  songs: [{ id: uuidv4(), name: "Opening Track", bpm: 120, presets: [], presetFolders: [], sequences: [], mappings: [] }],
-  selectedInputId: '', selectedOutputId: '', globalMappings: []
+  songs: [createDefaultSong("Opening Track")],
+  selectedInputId: '',
+  selectedOutputId: '',
+  globalMappings: []
 };
 
 const App: React.FC = () => {
@@ -30,10 +47,30 @@ const App: React.FC = () => {
 
   const handleUpdateProject = useCallback((updater: (prev: ProjectData) => ProjectData) => setProject(updater), []);
 
-  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence', targetId: string, isRelease: boolean, triggerValue: string | number) => {
-    if (actionType === 'preset') triggerPreset(targetId, isRelease, null, 'ms', currentSong.bpm, mappingId, false, triggerValue);
-    else if (actionType === 'sequence') triggerSequence(targetId, mappingId, isRelease, triggerValue);
-  }, [triggerPreset, triggerSequence, currentSong.bpm]);
+  const handleUpdateSong = useCallback((updated: Song) => {
+    setProject(prev => ({
+      ...prev,
+      songs: prev.songs.map(s => s.id === updated.id ? updated : s)
+    }));
+  }, []);
+
+  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene', targetId: string, isRelease: boolean, triggerValue: string | number) => {
+    if (isRelease && actionType !== 'switch_scene') {
+      if (actionType === 'preset') triggerPreset(targetId, true, null, 'ms', currentSong.bpm, mappingId, false, triggerValue);
+      else if (actionType === 'sequence') triggerSequence(targetId, mappingId, true, triggerValue);
+      return;
+    }
+
+    if (!isRelease) {
+      if (actionType === 'preset') {
+        triggerPreset(targetId, false, null, 'ms', currentSong.bpm, mappingId, false, triggerValue);
+      } else if (actionType === 'sequence') {
+        triggerSequence(targetId, mappingId, false, triggerValue);
+      } else if (actionType === 'switch_scene') {
+        handleUpdateSong({ ...currentSong, activeSceneId: targetId });
+      }
+    }
+  }, [triggerPreset, triggerSequence, currentSong, handleUpdateSong]);
 
   const handleGlobalActionTrigger = useCallback((action: GlobalMapping) => {
     if (!action.isEnabled) return;
@@ -74,8 +111,8 @@ const App: React.FC = () => {
       <div className="flex flex-1 overflow-hidden">
         <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />
         <main className="flex-1 relative overflow-auto p-8 bg-slate-950">
-          {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={(updated) => handleUpdateProject(prev => ({ ...prev, songs: prev.songs.map(s => s.id === updated.id ? updated : s) }))} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
-          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} />}
+          {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={handleUpdateSong} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
+          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} />}
           {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} />}
         </main>
       </div>
