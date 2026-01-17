@@ -56,14 +56,16 @@ const App: React.FC = () => {
 
   const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene', targetId: string, isRelease: boolean, triggerValue: string | number) => {
     if (isRelease && actionType !== 'switch_scene') {
-      if (actionType === 'preset') triggerPreset(targetId, true, null, 'ms', currentSong.bpm, mappingId, false, triggerValue);
+      // Fix: Corrected argument ordering for triggerPreset (7th: triggerValue, 8th: isSustainedMode)
+      if (actionType === 'preset') triggerPreset(targetId, true, null, 'ms', currentSong.bpm, mappingId, triggerValue, false);
       else if (actionType === 'sequence') triggerSequence(targetId, mappingId, true, triggerValue);
       return;
     }
 
     if (!isRelease) {
       if (actionType === 'preset') {
-        triggerPreset(targetId, false, null, 'ms', currentSong.bpm, mappingId, false, triggerValue);
+        // Fix: Corrected argument ordering for triggerPreset (7th: triggerValue, 8th: isSustainedMode)
+        triggerPreset(targetId, false, null, 'ms', currentSong.bpm, mappingId, triggerValue, false);
       } else if (actionType === 'sequence') {
         triggerSequence(targetId, mappingId, false, triggerValue);
       } else if (actionType === 'switch_scene') {

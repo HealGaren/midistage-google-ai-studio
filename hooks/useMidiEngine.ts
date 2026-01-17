@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { midiService } from '../webMidiService';
 import { ProjectData, Song, ActiveNoteState, NoteItem, SequenceItem, SequenceMode, DurationUnit, GlissandoConfig, GlissandoMode } from '../types';
 
@@ -22,26 +22,25 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
   const [activeMidiNotes, setActiveMidiNotes] = useState<ActiveNoteState[]>([]);
   const stepIndicesRef = useRef<Record<string, number>>({});
   const noteTimersRef = useRef<Map<string, { onTimeout?: any, offTimeout?: any, isPlaying: boolean }>>(new Map());
-  
-  // 트리거 소유권: 특정 Target(Preset/Sequence)을 마지막으로 장악한 인스턴스(mappingId_triggerValue)
   const activeMappingByTargetRef = useRef<Map<string, string>>(new Map());
-  
-  // 시퀀스별로 현재 'Sustain' 중인 노트들을 추적 (Pitch-Channel 조합)
-  const sustainedNotesBySequenceRef = useRef<Map<string, Set<string>>>(new Map());
-  
-  // 개별 물리적 트리거별로 연주했던 인덱스 기억
+  const sustainedNotesBySourceRef = useRef<Map<string, Set<string>>>(new Map());
   const lastTriggeredIndexByInstanceRef = useRef<Map<string, number>>(new Map());
+  const lastTriggerTimeByMappingRef = useRef<Map<string, number>>(new Map());
 
-  const calculateMs = useCallback((value: number, unit: DurationUnit, bpm: number) => {
+  const calculateMs = useCallback((value: number | null, unit: DurationUnit, bpm: number): number | null => {
+    if (value === null || value === undefined) return null;
     if (unit === 'ms') return value;
-    return (value * 60000) / bpm;
+    return (value * 60000) / (bpm || 120);
   }, []);
 
   const sendNoteOn = useCallback((pitch: number, velocity: number, channel: number, durationMs: number | null) => {
     const output = midiService.getOutputById(project.selectedOutputId);
     if (!output) return;
     output.playNote(pitch, { attack: velocity, channels: [channel] as any });
-    setActiveMidiNotes(prev => [...prev, { pitch, channel, startTime: Date.now(), durationMs }]);
+    setActiveMidiNotes(prev => {
+        const filtered = prev.filter(n => !(n.pitch === pitch && n.channel === channel));
+        return [...filtered, { pitch, channel, startTime: Date.now(), durationMs }];
+    });
   }, [project.selectedOutputId]);
 
   const sendNoteOff = useCallback((pitch: number, channel: number) => {
@@ -64,14 +63,13 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
       if (timer.offTimeout) clearTimeout(timer.offTimeout);
     });
     noteTimersRef.current.clear();
-    sustainedNotesBySequenceRef.current.clear();
+    sustainedNotesBySourceRef.current.clear();
     lastTriggeredIndexByInstanceRef.current.clear();
     activeMappingByTargetRef.current.clear();
   }, [project.selectedOutputId]);
 
-  // 특정 소스(시퀀스 등)가 유지하던 노트를 모두 종료
   const clearSustainedNotes = useCallback((sourceId: string) => {
-    const set = sustainedNotesBySequenceRef.current.get(sourceId);
+    const set = sustainedNotesBySourceRef.current.get(sourceId);
     if (set) {
       set.forEach(noteKey => {
         const [p, c] = noteKey.split('-').map(Number);
@@ -82,10 +80,10 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
   }, [sendNoteOff]);
 
   const recordSustainedNote = useCallback((sourceId: string, pitch: number, channel: number) => {
-    let set = sustainedNotesBySequenceRef.current.get(sourceId);
+    let set = sustainedNotesBySourceRef.current.get(sourceId);
     if (!set) {
       set = new Set();
-      sustainedNotesBySequenceRef.current.set(sourceId, set);
+      sustainedNotesBySourceRef.current.set(sourceId, set);
     }
     set.add(`${pitch}-${channel}`);
   }, []);
@@ -93,58 +91,59 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
   const runGlissandoInternal = useCallback(async (start: number, end: number, config: GlissandoConfig, channel: number) => {
     const steps = getGlissandoSteps(start, end, config.mode);
     if (steps.length === 0) return;
-
     for (let i = 0; i < steps.length; i++) {
       const pitch = steps[i];
       const t = i / (steps.length - 1 || 1);
       const vel = start < end 
         ? config.lowestVelocity + t * (config.targetVelocity - config.lowestVelocity)
         : config.targetVelocity + t * (config.lowestVelocity - config.targetVelocity);
-      
       sendNoteOn(pitch, vel, channel, config.speed);
       setTimeout(() => sendNoteOff(pitch, channel), config.speed);
       await new Promise(r => setTimeout(r, config.speed));
     }
   }, [sendNoteOn, sendNoteOff]);
 
-  const triggerDirectNote = useCallback((note: Omit<NoteItem, 'id'>, idSuffix: string = '', bpm: number, sourceId?: string) => {
-    const timerKey = `direct_${idSuffix}_${note.pitch}_${Date.now()}`;
-    const state: { onTimeout?: any, offTimeout?: any, isPlaying: boolean } = { isPlaying: false };
-    const durationMs = note.duration !== null ? calculateMs(note.duration, note.durationUnit, bpm) : null;
+  const triggerDirectNote = useCallback((note: Omit<NoteItem, 'id'>, mappingId: string, triggerValue: string | number, sourceId: string, bpm: number, overrideDuration: number | null | undefined = undefined, overrideUnit: DurationUnit = 'ms') => {
+    const timerKey = `${sourceId}_${mappingId}_${triggerValue}_${note.pitch}`;
+    const existing = noteTimersRef.current.get(timerKey);
+    if (existing?.onTimeout) clearTimeout(existing.onTimeout);
+    if (existing?.offTimeout) clearTimeout(existing.offTimeout);
 
+    // FIX: undefined일 때만 note.duration을 사용하고, null(무한 유지)일 때는 null을 그대로 유지함
+    const durVal = overrideDuration !== undefined ? overrideDuration : note.duration;
+    const durUnit = overrideDuration !== undefined ? overrideUnit : note.durationUnit;
+    const durationMs = calculateMs(durVal, durUnit, bpm);
+
+    const state = { isPlaying: false, onTimeout: null as any, offTimeout: null as any };
     state.onTimeout = setTimeout(() => {
       state.isPlaying = true;
       sendNoteOn(note.pitch, note.velocity, note.channel, durationMs);
-      
-      if (sourceId && !durationMs) {
+      if (durationMs === null) {
         recordSustainedNote(sourceId, note.pitch, note.channel);
-      }
-
-      if (durationMs !== null) {
+      } else {
         state.offTimeout = setTimeout(() => {
           sendNoteOff(note.pitch, note.channel);
           noteTimersRef.current.delete(timerKey);
         }, durationMs);
       }
-    }, note.preDelay);
+    }, note.preDelay || 0);
     noteTimersRef.current.set(timerKey, state);
   }, [sendNoteOn, sendNoteOff, calculateMs, recordSustainedNote]);
 
-  const triggerPreset = useCallback(async (presetId: string, isRelease: boolean = false, overrideDuration: number | null = null, overrideUnit: DurationUnit = 'ms', bpm: number, mappingId?: string, isSustainedMode: boolean = false, triggerValue: string | number = 'direct', sourceId?: string) => {
+  const triggerPreset = useCallback(async (presetId: string, isRelease: boolean = false, overrideDuration: number | null | undefined = undefined, overrideUnit: DurationUnit = 'ms', bpm: number, mappingId: string = 'ui', triggerValue: string | number = 'direct', isSustainedMode: boolean = false, sourceId?: string) => {
     const preset = currentSong.presets.find(p => p.id === presetId);
     if (!preset) return;
-
-    const instanceId = `${mappingId || 'ui'}_${triggerValue}`;
+    const instanceId = `${mappingId}_${triggerValue}`;
+    const effectiveSourceId = sourceId || presetId;
     const gliss = preset.glissando;
 
     if (isRelease) {
-      if (activeMappingByTargetRef.current.get(presetId) !== instanceId) return;
+      if (activeMappingByTargetRef.current.get(effectiveSourceId) !== instanceId) return;
       if (isSustainedMode) return; 
-
       preset.notes.forEach(note => {
-        const timerKey = `${presetId}_${note.id}`;
+        const timerKey = `${effectiveSourceId}_${mappingId}_${triggerValue}_${note.id}`;
         const existing = noteTimersRef.current.get(timerKey);
-        if (existing && (overrideDuration === null && note.duration === null)) {
+        if (existing) {
           if (existing.onTimeout) clearTimeout(existing.onTimeout);
           if (existing.isPlaying) sendNoteOff(note.pitch, note.channel);
           noteTimersRef.current.delete(timerKey);
@@ -152,49 +151,48 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
       });
       if (gliss?.releaseEnabled) {
         const mainChannel = preset.notes[0]?.channel || 1;
-        await runGlissandoInternal(gliss.targetNote, gliss.lowestNote, gliss, mainChannel);
+        runGlissandoInternal(gliss.targetNote, gliss.lowestNote, gliss, mainChannel);
       }
     } else {
-      activeMappingByTargetRef.current.set(presetId, instanceId);
-
+      activeMappingByTargetRef.current.set(effectiveSourceId, instanceId);
       if (gliss?.attackEnabled) {
         const mainChannel = preset.notes[0]?.channel || 1;
         await runGlissandoInternal(gliss.lowestNote, gliss.targetNote, gliss, mainChannel);
       }
       preset.notes.forEach(note => {
-        const timerKey = `${presetId}_${note.id}`;
-        const durationMs = overrideDuration !== null 
-          ? calculateMs(overrideDuration, overrideUnit, bpm) 
-          : (note.duration !== null ? calculateMs(note.duration, note.durationUnit, bpm) : null);
+        const timerKey = `${effectiveSourceId}_${mappingId}_${triggerValue}_${note.id}`;
+        const old = noteTimersRef.current.get(timerKey);
+        if (old?.onTimeout) clearTimeout(old.onTimeout);
+        if (old?.offTimeout) clearTimeout(old.offTimeout);
 
-        const state: { onTimeout?: any, offTimeout?: any, isPlaying: boolean } = { isPlaying: false };
+        // FIX: 여기서도 null(무한 유지)을 유효한 오버라이드로 인식하게 함
+        const durVal = overrideDuration !== undefined ? overrideDuration : note.duration;
+        const durUnit = overrideDuration !== undefined ? overrideUnit : note.durationUnit;
+        const durationMs = calculateMs(durVal, durUnit, bpm);
+        
+        const state = { isPlaying: false, onTimeout: null as any, offTimeout: null as any };
         state.onTimeout = setTimeout(() => {
           state.isPlaying = true;
           sendNoteOn(note.pitch, note.velocity, note.channel, durationMs);
-          
-          if (sourceId && !durationMs) {
-            recordSustainedNote(sourceId, note.pitch, note.channel);
-          }
-
-          if (durationMs !== null) {
+          if (durationMs === null) {
+            recordSustainedNote(effectiveSourceId, note.pitch, note.channel);
+          } else {
             state.offTimeout = setTimeout(() => {
               sendNoteOff(note.pitch, note.channel);
               noteTimersRef.current.delete(timerKey);
             }, durationMs);
           }
-        }, note.preDelay);
+        }, note.preDelay || 0);
         noteTimersRef.current.set(timerKey, state);
       });
     }
   }, [currentSong, sendNoteOn, sendNoteOff, calculateMs, runGlissandoInternal, recordSustainedNote]);
 
-  const triggerSequenceItem = useCallback((item: SequenceItem, bpm: number, instanceId?: string, sourceId?: string) => {
+  const triggerSequenceItem = useCallback((item: SequenceItem, bpm: number, mappingId: string, triggerValue: string | number, sourceId: string) => {
     if (item.type === 'preset' && item.targetId) {
-      const mappingId = instanceId?.split('_')[0];
-      const triggerVal = instanceId?.split('_')[1] || 'direct';
-      triggerPreset(item.targetId, false, item.overrideDuration ?? null, item.overrideDurationUnit ?? 'ms', bpm, mappingId, item.sustainUntilNext, triggerVal, sourceId);
+      triggerPreset(item.targetId, false, item.overrideDuration, item.overrideDurationUnit ?? 'ms', bpm, mappingId, triggerValue, item.sustainUntilNext, sourceId);
     } else if (item.type === 'note' && item.noteData) {
-      triggerDirectNote(item.noteData, item.id, bpm, sourceId);
+      triggerDirectNote(item.noteData, mappingId, triggerValue, sourceId, bpm, item.overrideDuration, item.overrideDurationUnit ?? 'ms');
     }
   }, [triggerPreset, triggerDirectNote]);
 
@@ -203,48 +201,45 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
     if (!seq) return;
     const effectiveBpm = seq.bpm || currentSong.bpm;
     const instanceId = `${mappingId}_${triggerValue}`;
-
     if (seq.mode === SequenceMode.STEP) {
       if (isRelease) {
-        // 소유권 확인: 마지막 주체만 Release 처리
         if (activeMappingByTargetRef.current.get(seqId) !== instanceId) return;
-
         const triggeredIdx = lastTriggeredIndexByInstanceRef.current.get(instanceId);
         if (triggeredIdx === undefined) return;
-        
         const triggeredItem = seq.items[triggeredIdx];
-        // SustainUntilNext 설정된 아이템은 뗄 때 끄지 않음 (다음 스텝에서 꺼짐)
         if (!triggeredItem?.sustainUntilNext) {
           if (triggeredItem.type === 'preset' && triggeredItem.targetId) {
-            triggerPreset(triggeredItem.targetId, true, triggeredItem.overrideDuration ?? null, triggeredItem.overrideDurationUnit ?? 'ms', effectiveBpm, mappingId, false, triggerValue, seqId);
+            triggerPreset(triggeredItem.targetId, true, triggeredItem.overrideDuration, triggeredItem.overrideDurationUnit ?? 'ms', effectiveBpm, mappingId, triggerValue, false, seqId);
           } else if (triggeredItem.type === 'note' && triggeredItem.noteData) {
-            if (triggeredItem.overrideDuration === null && triggeredItem.noteData.duration === null) {
-              sendNoteOff(triggeredItem.noteData.pitch, triggeredItem.noteData.channel);
+            const timerKey = `${seqId}_${mappingId}_${triggerValue}_${triggeredItem.noteData.pitch}`;
+            const existing = noteTimersRef.current.get(timerKey);
+            if (existing) {
+                if (existing.onTimeout) clearTimeout(existing.onTimeout);
+                if (existing.isPlaying) sendNoteOff(triggeredItem.noteData.pitch, triggeredItem.noteData.channel);
+                noteTimersRef.current.delete(timerKey);
             }
           }
         }
       } else {
-        // [핵심] 새로운 스텝 시작 시, 이 시퀀스가 이전에 서스테인하고 있던 모든 노트를 무조건 종료
+        const now = Date.now();
+        const lastTime = lastTriggerTimeByMappingRef.current.get(instanceId) || 0;
+        if (now - lastTime < 30) return;
+        lastTriggerTimeByMappingRef.current.set(instanceId, now);
         clearSustainedNotes(seqId);
-
-        // 소유권 업데이트
         activeMappingByTargetRef.current.set(seqId, instanceId);
-
         const currentIndex = stepIndicesRef.current[seqId] || 0;
         const item = seq.items[currentIndex];
-        
         if (item) {
           lastTriggeredIndexByInstanceRef.current.set(instanceId, currentIndex);
-          triggerSequenceItem(item, effectiveBpm, instanceId, seqId);
+          triggerSequenceItem(item, effectiveBpm, mappingId, triggerValue, seqId);
         }
-        
         stepIndicesRef.current[seqId] = (currentIndex + 1) % seq.items.length;
       }
     } else if (seq.mode === SequenceMode.AUTO) {
       if (!isRelease) {
-        const msPerBeat = 60000 / effectiveBpm;
+        const msPerBeat = 60000 / (effectiveBpm || 120);
         seq.items.forEach(item => {
-          setTimeout(() => triggerSequenceItem(item, effectiveBpm), item.beatPosition * msPerBeat);
+          setTimeout(() => triggerSequenceItem(item, effectiveBpm, mappingId, triggerValue, seqId), item.beatPosition * msPerBeat);
         });
       }
     }
@@ -252,18 +247,11 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
 
   const resetAllSequences = useCallback(() => {
     stepIndicesRef.current = {};
-    sustainedNotesBySequenceRef.current.forEach((_, id) => clearSustainedNotes(id));
+    sustainedNotesBySourceRef.current.forEach((_, id) => clearSustainedNotes(id));
     lastTriggeredIndexByInstanceRef.current.clear();
     activeMappingByTargetRef.current.clear();
+    lastTriggerTimeByMappingRef.current.clear();
   }, [clearSustainedNotes]);
 
-  return {
-    activeMidiNotes,
-    sendNoteOn,
-    sendNoteOff,
-    stopAllNotes,
-    triggerPreset,
-    triggerSequence,
-    resetAllSequences
-  };
+  return { activeMidiNotes, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences };
 };

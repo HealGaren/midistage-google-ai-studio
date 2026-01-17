@@ -18,7 +18,7 @@ export const CompactItemEditor: React.FC<CompactItemEditorProps> = ({ item, pres
       <div className="flex items-center justify-between">
         <div className="flex bg-slate-800 rounded-lg p-0.5">
           <button onClick={() => onUpdate({ type: 'preset' })} className={`px-3 py-1 text-[9px] font-black uppercase rounded ${item.type === 'preset' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>Preset</button>
-          <button onClick={() => onUpdate({ type: 'note', noteData: item.noteData || { pitch: 60, velocity: 0.8, channel: 1, preDelay: 0, duration: 500, durationUnit: 'ms' } })} className={`px-3 py-1 text-[9px] font-black uppercase rounded ${item.type === 'note' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>Note</button>
+          <button onClick={() => onUpdate({ type: 'note', noteData: item.noteData || { pitch: 60, velocity: 0.8, channel: 1, preDelay: 0, duration: null, durationUnit: 'ms' } })} className={`px-3 py-1 text-[9px] font-black uppercase rounded ${item.type === 'note' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>Note</button>
         </div>
         <button onClick={onDelete} className="text-rose-500 p-1.5 hover:bg-rose-500/10 rounded-lg transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -55,7 +55,7 @@ export const CompactItemEditor: React.FC<CompactItemEditorProps> = ({ item, pres
             type="number" 
             step={item.overrideDurationUnit === 'beat' ? 0.25 : 1} 
             placeholder="Latching (Until Release)" 
-            value={item.overrideDuration === null ? '' : item.overrideDuration} 
+            value={(item.overrideDuration === null || item.overrideDuration === undefined) ? '' : item.overrideDuration} 
             onChange={(e) => onUpdate({ overrideDuration: e.target.value === '' ? null : parseFloat(e.target.value)})} 
             className="bg-slate-800 text-[11px] font-bold p-2.5 rounded-xl border border-slate-700 outline-none placeholder:text-slate-600 text-slate-200 focus:border-indigo-500" 
           />

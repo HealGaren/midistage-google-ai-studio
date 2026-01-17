@@ -66,7 +66,7 @@ export const SequenceEditor: React.FC<SequenceEditorProps> = ({ sequence, song, 
               </div>
             ))}
             <button 
-              onClick={() => onUpdate({ items: [...sequence.items, { id: uuidv4(), type: 'preset', targetId: song.presets[0]?.id || '', beatPosition: sequence.items.length, overrideDuration: null, overrideDurationUnit: 'ms' }] })} 
+              onClick={() => onUpdate({ items: [...sequence.items, { id: uuidv4(), type: 'preset', targetId: song.presets[0]?.id || '', beatPosition: sequence.items.length, overrideDuration: undefined, overrideDurationUnit: 'ms' }] })} 
               className="flex-shrink-0 w-24 h-48 border-2 border-dashed border-slate-800 rounded-[32px] flex items-center justify-center text-slate-800 hover:text-indigo-500 hover:border-indigo-500 transition-all hover:bg-indigo-500/5 group"
             >
               <svg className="w-8 h-8 group-hover:scale-125 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
