@@ -12,11 +12,13 @@ interface NavigationProps {
 
 const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectSong, onUpdateProject }) => {
   const addSong = () => {
+    // FIX: Added missing presetFolders property to comply with Song interface
     const newSong: Song = {
       id: uuidv4(),
       name: "Untitled Song",
       bpm: 120,
       presets: [],
+      presetFolders: [],
       sequences: [],
       mappings: []
     };

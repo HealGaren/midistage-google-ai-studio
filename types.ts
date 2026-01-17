@@ -3,6 +3,19 @@ export type MidiNoteNumber = number; // 0-127
 
 export type DurationUnit = 'ms' | 'beat';
 
+export type GlissandoMode = 'white' | 'black' | 'both';
+
+export interface GlissandoConfig {
+  attackEnabled: boolean;
+  releaseEnabled: boolean;
+  lowestNote: number;
+  targetNote: number;
+  speed: number; // ms per note step
+  mode: GlissandoMode;
+  lowestVelocity: number;
+  targetVelocity: number;
+}
+
 export interface NoteItem {
   id: string;
   pitch: MidiNoteNumber;
@@ -17,6 +30,13 @@ export interface NotePreset {
   id: string;
   name: string;
   notes: NoteItem[];
+  glissando?: GlissandoConfig;
+  folderId?: string | null; // 폴더 소속 ID
+}
+
+export interface PresetFolder {
+  id: string;
+  name: string;
 }
 
 export type SequenceItemType = 'preset' | 'note';
@@ -60,7 +80,7 @@ export interface InputMapping {
   isEnabled: boolean;
 }
 
-export type GlobalActionType = 'PREV_SONG' | 'NEXT_SONG' | 'GOTO_SONG' | 'RESET_SEQUENCES';
+export type GlobalActionType = 'RESET_SEQUENCES' | 'PREV_SONG' | 'NEXT_SONG' | 'GOTO_SONG';
 
 export interface GlobalMapping {
   id: string;
@@ -77,6 +97,7 @@ export interface Song {
   name: string;
   bpm: number;
   presets: NotePreset[];
+  presetFolders: PresetFolder[];
   sequences: Sequence[];
   mappings: InputMapping[];
 }

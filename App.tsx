@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { midiService } from './webMidiService';
-import { Song, ProjectData, SequenceMode, InputMapping, NotePreset, Sequence, ActiveNoteState, NoteItem, SequenceItem, GlobalMapping, DurationUnit } from './types';
+import { Song, ProjectData, SequenceMode, InputMapping, NotePreset, Sequence, ActiveNoteState, NoteItem, SequenceItem, GlobalMapping, DurationUnit, GlissandoConfig, GlissandoMode } from './types';
 import Navigation from './components/Navigation';
 import Editor from './components/Editor';
 import Performance from './components/Performance';
@@ -16,6 +16,7 @@ const DEFAULT_PROJECT: ProjectData = {
       name: "Opening Track",
       bpm: 120,
       presets: [],
+      presetFolders: [],
       sequences: [],
       mappings: []
     }
@@ -23,6 +24,21 @@ const DEFAULT_PROJECT: ProjectData = {
   selectedInputId: '',
   selectedOutputId: '',
   globalMappings: []
+};
+
+const getGlissandoSteps = (start: number, end: number, mode: GlissandoMode) => {
+  const steps: number[] = [];
+  const dir = start < end ? 1 : -1;
+  let curr = start;
+  while (dir === 1 ? curr <= end : curr >= end) {
+    const pc = curr % 12;
+    const isBlack = [1, 3, 6, 8, 10].includes(pc);
+    if (mode === 'both' || (mode === 'white' && !isBlack) || (mode === 'black' && isBlack)) {
+      steps.push(curr);
+    }
+    curr += dir;
+  }
+  return steps;
 };
 
 const App: React.FC = () => {
@@ -82,21 +98,35 @@ const App: React.FC = () => {
     noteTimersRef.current.clear();
   }, [project.selectedOutputId]);
 
-  const resetAllSequences = useCallback(() => {
-    stepIndicesRef.current = {};
-    lastActivePresetForTriggerRef.current.clear();
-    stopAllNotes();
-  }, [stopAllNotes]);
-
   const calculateMs = useCallback((value: number, unit: DurationUnit, bpm: number) => {
     if (unit === 'ms') return value;
     return (value * 60000) / bpm;
   }, []);
 
+  const runGlissandoInternal = useCallback(async (start: number, end: number, config: GlissandoConfig, channel: number) => {
+    const steps = getGlissandoSteps(start, end, config.mode);
+    if (steps.length === 0) return;
+
+    for (let i = 0; i < steps.length; i++) {
+      const pitch = steps[i];
+      const t = i / (steps.length - 1 || 1);
+      const vel = start < end 
+        ? config.lowestVelocity + t * (config.targetVelocity - config.lowestVelocity)
+        : config.targetVelocity + t * (config.lowestVelocity - config.targetVelocity);
+      
+      sendNoteOn(pitch, vel, channel, config.speed);
+      
+      setTimeout(() => {
+        sendNoteOff(pitch, channel);
+      }, config.speed);
+
+      await new Promise(r => setTimeout(r, config.speed));
+    }
+  }, [sendNoteOn, sendNoteOff]);
+
   const triggerDirectNote = useCallback((note: Omit<NoteItem, 'id'>, idSuffix: string = '', bpm: number = currentSong.bpm) => {
     const timerKey = `direct_${idSuffix}_${note.pitch}_${Date.now()}`;
     const state: { onTimeout?: any, offTimeout?: any, isPlaying: boolean } = { isPlaying: false };
-    
     const durationMs = note.duration !== null ? calculateMs(note.duration, note.durationUnit, bpm) : null;
 
     state.onTimeout = setTimeout(() => {
@@ -113,28 +143,44 @@ const App: React.FC = () => {
     noteTimersRef.current.set(timerKey, state);
   }, [sendNoteOn, sendNoteOff, calculateMs, currentSong.bpm]);
 
-  const triggerPreset = useCallback((presetId: string, isRelease: boolean = false, overrideDuration: number | null = null, overrideUnit: DurationUnit = 'ms', bpm: number = currentSong.bpm) => {
+  const triggerPreset = useCallback(async (presetId: string, isRelease: boolean = false, overrideDuration: number | null = null, overrideUnit: DurationUnit = 'ms', bpm: number = currentSong.bpm) => {
     const preset = currentSong.presets.find(p => p.id === presetId);
     if (!preset) return;
 
-    preset.notes.forEach(note => {
-      const timerKey = `${presetId}_${note.id}`;
-      const existing = noteTimersRef.current.get(timerKey);
-      
-      let durationMs: number | null = null;
-      if (overrideDuration !== null) {
-        durationMs = calculateMs(overrideDuration, overrideUnit, bpm);
-      } else if (note.duration !== null) {
-        durationMs = calculateMs(note.duration, note.durationUnit, bpm);
-      }
+    const gliss = preset.glissando;
 
-      if (isRelease) {
+    if (isRelease) {
+      preset.notes.forEach(note => {
+        const timerKey = `${presetId}_${note.id}`;
+        const existing = noteTimersRef.current.get(timerKey);
+        let durationMs: number | null = null;
+        if (overrideDuration !== null) durationMs = calculateMs(overrideDuration, overrideUnit, bpm);
+        else if (note.duration !== null) durationMs = calculateMs(note.duration, note.durationUnit, bpm);
+
         if (existing && durationMs === null) {
           if (existing.onTimeout) clearTimeout(existing.onTimeout);
           if (existing.isPlaying) sendNoteOff(note.pitch, note.channel);
           noteTimersRef.current.delete(timerKey);
         }
-      } else {
+      });
+
+      if (gliss?.releaseEnabled) {
+        const mainChannel = preset.notes[0]?.channel || 1;
+        await runGlissandoInternal(gliss.targetNote, gliss.lowestNote, gliss, mainChannel);
+      }
+    } else {
+      if (gliss?.attackEnabled) {
+        const mainChannel = preset.notes[0]?.channel || 1;
+        await runGlissandoInternal(gliss.lowestNote, gliss.targetNote, gliss, mainChannel);
+      }
+
+      preset.notes.forEach(note => {
+        const timerKey = `${presetId}_${note.id}`;
+        const existing = noteTimersRef.current.get(timerKey);
+        let durationMs: number | null = null;
+        if (overrideDuration !== null) durationMs = calculateMs(overrideDuration, overrideUnit, bpm);
+        else if (note.duration !== null) durationMs = calculateMs(note.duration, note.durationUnit, bpm);
+
         if (existing) {
           if (existing.onTimeout) clearTimeout(existing.onTimeout);
           if (existing.offTimeout) clearTimeout(existing.offTimeout);
@@ -154,9 +200,9 @@ const App: React.FC = () => {
           }
         }, note.preDelay);
         noteTimersRef.current.set(timerKey, state);
-      }
-    });
-  }, [currentSong, sendNoteOn, sendNoteOff, calculateMs]);
+      });
+    }
+  }, [currentSong, sendNoteOn, sendNoteOff, calculateMs, runGlissandoInternal]);
 
   const triggerSequenceItem = useCallback((item: SequenceItem, bpm: number) => {
     if (item.type === 'preset' && item.targetId) {
@@ -169,7 +215,6 @@ const App: React.FC = () => {
   const triggerSequence = useCallback((seqId: string, mappingId: string, isRelease: boolean = false) => {
     const seq = currentSong.sequences.find(s => s.id === seqId);
     if (!seq) return;
-
     const effectiveBpm = seq.bpm || currentSong.bpm;
 
     if (seq.mode === SequenceMode.STEP) {
@@ -188,7 +233,6 @@ const App: React.FC = () => {
     } else if (seq.mode === SequenceMode.AUTO) {
       if (!isRelease) {
         const msPerBeat = 60000 / effectiveBpm;
-        
         seq.items.forEach(item => {
           const delayMs = item.beatPosition * msPerBeat;
           setTimeout(() => triggerSequenceItem(item, effectiveBpm), delayMs);
@@ -201,6 +245,11 @@ const App: React.FC = () => {
     if (actionType === 'preset') triggerPreset(targetId, isRelease);
     else if (actionType === 'sequence') triggerSequence(targetId, mappingId, isRelease);
   }, [triggerPreset, triggerSequence]);
+
+  const resetAllSequences = useCallback(() => {
+    stepIndicesRef.current = {};
+    lastActivePresetForTriggerRef.current.clear();
+  }, []);
 
   const handleGlobalActionTrigger = useCallback((action: GlobalMapping) => {
     if (!action.isEnabled) return;
@@ -242,7 +291,7 @@ const App: React.FC = () => {
     
     const onNoteOn = (e: any) => {
       const pitch = e.note.number;
-      const channel = e.message.channel; // WebMidi channel 1-16
+      const channel = e.message.channel;
       project.globalMappings.forEach(gm => {
         if (gm.isEnabled && gm.triggerType === 'midi' && Number(gm.triggerValue) === pitch) {
           const channelMatch = gm.triggerChannel === 0 || gm.triggerChannel === channel;
