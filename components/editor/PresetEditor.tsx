@@ -153,10 +153,14 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ preset, song, onUpda
                   </div>
 
                   <div className="bg-slate-950 p-8 rounded-[32px] border border-slate-800 space-y-8">
-                    <div className="grid grid-cols-2 gap-8">
+                    <div className="grid grid-cols-3 gap-6">
                        <div className="flex flex-col gap-2.5">
                         <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Start Pitch ({midiToNoteName(preset.glissando.lowestNote)})</span>
                         <input type="number" min="0" max="127" value={preset.glissando.lowestNote} onChange={(e) => onUpdate({ glissando: { ...preset.glissando!, lowestNote: parseInt(e.target.value) || 0 }})} className="bg-slate-900 text-[13px] font-bold p-4 rounded-2xl border border-slate-700 outline-none text-slate-200 focus:border-indigo-500" />
+                      </div>
+                      <div className="flex flex-col gap-2.5">
+                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">End Pitch ({midiToNoteName(preset.glissando.targetNote)})</span>
+                        <input type="number" min="0" max="127" value={preset.glissando.targetNote} onChange={(e) => onUpdate({ glissando: { ...preset.glissando!, targetNote: parseInt(e.target.value) || 0 }})} className="bg-slate-900 text-[13px] font-bold p-4 rounded-2xl border border-slate-700 outline-none text-slate-200 focus:border-indigo-500" />
                       </div>
                       <div className="flex flex-col gap-2.5">
                         <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Speed (ms)</span>
@@ -193,7 +197,7 @@ export const PresetEditor: React.FC<PresetEditorProps> = ({ preset, song, onUpda
                      </div>
                    </div>
                    <div className="p-6 bg-indigo-500/5 rounded-3xl border border-indigo-500/10 text-[11px] text-slate-400 font-medium leading-relaxed">
-                     <p>Glissando creates a sequence of notes from the "Start Pitch" to each individual note in your preset. It's triggered either when you press the mapped key (Attack) or when you release it (Release).</p>
+                     <p>Glissando creates a sequence of notes from the "Start Pitch" to the "End Pitch". It's triggered either when you press the mapped key (Attack) or when you release it (Release).</p>
                    </div>
                 </div>
               </div>
