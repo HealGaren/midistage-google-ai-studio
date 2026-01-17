@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { ProjectData, GlobalMapping, TriggerType, GlobalActionType } from '../types';
 import { midiService } from '../webMidiService';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +12,7 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
   const inputs = midiService.getInputs();
   const outputs = midiService.getOutputs();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addGlobalMapping = () => {
     const newMapping: GlobalMapping = {
@@ -36,9 +37,70 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
     }));
   };
 
+  // --- Save / Load Logic ---
+  const saveProjectToFile = () => {
+    const dataStr = JSON.stringify(project, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const exportFileDefaultName = `${project.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
+  const loadProjectFromFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const fileReader = new FileReader();
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    fileReader.onload = (e) => {
+      try {
+        const content = e.target?.result;
+        if (typeof content === 'string') {
+          const importedProject = JSON.parse(content) as ProjectData;
+          // 간단한 스키마 검증 (최소 필드 체크)
+          if (importedProject.songs && Array.isArray(importedProject.songs)) {
+            onUpdateProject(() => importedProject);
+            alert("Project loaded successfully!");
+          } else {
+            alert("Invalid project file format.");
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load project:", err);
+        alert("Error parsing project file.");
+      }
+    };
+    fileReader.readAsText(files[0]);
+  };
+
   return (
     <div className="max-w-4xl space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-20">
-      <h2 className="text-3xl font-black text-white">Project Settings</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-black text-white">Project Settings</h2>
+        <div className="flex gap-3">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={loadProjectFromFile} 
+            accept=".json" 
+            className="hidden" 
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-slate-700"
+          >
+            Import JSON
+          </button>
+          <button 
+            onClick={saveProjectToFile}
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg"
+          >
+            Export JSON
+          </button>
+        </div>
+      </div>
 
       {/* Project Identity & MIDI IO */}
       <div className="space-y-6">
