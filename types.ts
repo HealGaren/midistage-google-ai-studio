@@ -49,6 +49,7 @@ export interface SequenceItem {
   beatPosition: number; // Position in beats from the start (0, 0.5, 1, 1.25 etc)
   overrideDuration?: number | null; // value in overrideDurationUnit
   overrideDurationUnit?: DurationUnit;
+  sustainUntilNext?: boolean; // Sustain until next step is triggered
 }
 
 export enum SequenceMode {

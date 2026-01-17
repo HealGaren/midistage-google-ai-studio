@@ -30,9 +30,9 @@ const App: React.FC = () => {
 
   const handleUpdateProject = useCallback((updater: (prev: ProjectData) => ProjectData) => setProject(updater), []);
 
-  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence', targetId: string, isRelease: boolean) => {
-    if (actionType === 'preset') triggerPreset(targetId, isRelease, null, 'ms', currentSong.bpm);
-    else if (actionType === 'sequence') triggerSequence(targetId, mappingId, isRelease);
+  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence', targetId: string, isRelease: boolean, triggerValue: string | number) => {
+    if (actionType === 'preset') triggerPreset(targetId, isRelease, null, 'ms', currentSong.bpm, mappingId, false, triggerValue);
+    else if (actionType === 'sequence') triggerSequence(targetId, mappingId, isRelease, triggerValue);
   }, [triggerPreset, triggerSequence, currentSong.bpm]);
 
   const handleGlobalActionTrigger = useCallback((action: GlobalMapping) => {
@@ -74,7 +74,7 @@ const App: React.FC = () => {
       <div className="flex flex-1 overflow-hidden">
         <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />
         <main className="flex-1 relative overflow-auto p-8 bg-slate-950">
-          {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={(updated) => handleUpdateProject(prev => ({ ...prev, songs: prev.songs.map(s => s.id === updated.id ? updated : s) }))} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} />}
+          {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={(updated) => handleUpdateProject(prev => ({ ...prev, songs: prev.songs.map(s => s.id === updated.id ? updated : s) }))} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
           {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} />}
           {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} />}
         </main>

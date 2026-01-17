@@ -6,7 +6,7 @@ import { midiService } from '../webMidiService';
 interface PerformanceProps {
   song: Song;
   activeNotes: ActiveNoteState[];
-  onTrigger: (mappingId: string, type: 'preset' | 'sequence', targetId: string, isRelease: boolean) => void;
+  onTrigger: (mappingId: string, type: 'preset' | 'sequence', targetId: string, isRelease: boolean, triggerValue: string | number) => void;
   selectedInputId: string;
 }
 
@@ -31,13 +31,13 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
 
 const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger, selectedInputId }) => {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
+  const [pressedMidiPitches, setPressedMidiPitches] = useState<Set<number>>(new Set());
 
   const findMappings = useCallback((type: 'keyboard' | 'midi', value: string | number, channel?: number) => {
     return song.mappings.filter(m => {
       if (!m.isEnabled) return false;
       if (m.triggerType !== type) return false;
 
-      // For MIDI, check channel first
       if (type === 'midi' && channel !== undefined) {
         const channelMatch = m.triggerChannel === 0 || m.triggerChannel === channel;
         if (!channelMatch) return false;
@@ -50,13 +50,16 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger,
           const numValue = Number(value);
           return numValue >= start && numValue <= end;
         } else {
-          const start = String(m.triggerStart);
-          const end = String(m.triggerEnd);
-          const val = String(value);
+          const start = String(m.triggerStart).toLowerCase();
+          const end = String(m.triggerEnd).toLowerCase();
+          const val = String(value).toLowerCase();
           return val >= start && val <= end;
         }
       } else {
-        return m.triggerValue === value;
+        const triggerStr = String(m.triggerValue).toLowerCase();
+        const inputStr = String(value).toLowerCase();
+        const allowedValues = triggerStr.split(',').map(v => v.trim());
+        return allowedValues.includes(inputStr);
       }
     });
   }, [song.mappings]);
@@ -66,15 +69,19 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger,
       if (e.repeat) return;
       const mappings = findMappings('keyboard', e.key);
       if (mappings.length > 0) {
-        setPressedKeys(prev => new Set(prev).add(e.key));
-        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false));
+        setPressedKeys(prev => new Set(prev).add(e.key.toLowerCase()));
+        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false, e.key));
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       const mappings = findMappings('keyboard', e.key);
       if (mappings.length > 0) {
-        setPressedKeys(prev => { const next = new Set(prev); next.delete(e.key); return next; });
-        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true));
+        setPressedKeys(prev => { 
+          const next = new Set(prev); 
+          next.delete(e.key.toLowerCase()); 
+          return next; 
+        });
+        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true, e.key));
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -90,14 +97,24 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger,
       const pitch = e.note.number;
       const channel = e.message.channel;
       const mappings = findMappings('midi', pitch, channel);
-      mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false));
+      if (mappings.length > 0) {
+        setPressedMidiPitches(prev => new Set(prev).add(pitch));
+        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false, pitch));
+      }
     };
     
     const onNoteOff = (e: any) => {
       const pitch = e.note.number;
       const channel = e.message.channel;
       const mappings = findMappings('midi', pitch, channel);
-      mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true));
+      if (mappings.length > 0) {
+        setPressedMidiPitches(prev => {
+          const next = new Set(prev);
+          next.delete(pitch);
+          return next;
+        });
+        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true, pitch));
+      }
     };
     
     input.addListener('noteon', onNoteOn);
@@ -129,7 +146,16 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger,
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {song.mappings.map(map => {
               if (!map.isEnabled) return null;
-              const isActive = (map.triggerType === 'keyboard' && pressedKeys.has(map.triggerValue as string));
+              
+              const triggerStr = String(map.triggerValue).toLowerCase();
+              const allowedValues = triggerStr.split(',').map(v => v.trim());
+              
+              let isActive = false;
+              if (map.triggerType === 'keyboard') {
+                isActive = allowedValues.some(k => pressedKeys.has(k));
+              } else {
+                isActive = allowedValues.some(p => pressedMidiPitches.has(Number(p)));
+              }
               
               let triggerDisplay = '';
               if (map.isRange) {
@@ -141,8 +167,8 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger,
               return (
                 <button
                   key={map.id}
-                  onMouseDown={() => onTrigger(map.id, map.actionType, map.actionTargetId, false)}
-                  onMouseUp={() => onTrigger(map.id, map.actionType, map.actionTargetId, true)}
+                  onMouseDown={() => onTrigger(map.id, map.actionType, map.actionTargetId, false, 'mouse')}
+                  onMouseUp={() => onTrigger(map.id, map.actionType, map.actionTargetId, true, 'mouse')}
                   className={`h-24 p-4 rounded-xl flex flex-col items-start justify-between transition-all border-b-4 transform active:translate-y-1 active:border-b-0 ${isActive ? 'bg-indigo-600 border-indigo-800 ring-2 ring-indigo-400' : 'bg-slate-800 hover:bg-slate-700 border-slate-900'}`}
                 >
                   <div className="flex items-center justify-between w-full">
@@ -180,7 +206,6 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, onTrigger,
                       <div className="w-1.5 h-6 bg-emerald-500 rounded-full animate-bounce shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                       <div className="w-1.5 h-6 bg-emerald-500 rounded-full animate-bounce shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{animationDelay:'0.1s'}}></div>
                     </div>
-                    {/* Fix: changed duration to durationMs as per ActiveNoteState interface */}
                     {an.durationMs && <DurationBar duration={an.durationMs} />}
                   </div>
                 ))}
