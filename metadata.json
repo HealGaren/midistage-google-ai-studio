@@ -1,0 +1,5 @@
+{
+  "name": "MidiStage Performance Engine",
+  "description": "A professional MIDI performance controller for managing song presets, chord sequences, and automated triggers with flexible mapping for DAW-based live sets.",
+  "requestFramePermissions": []
+}
