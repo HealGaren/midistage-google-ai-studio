@@ -11,6 +11,8 @@
       background-color: #0f172a;
       color: #f8fafc;
       overflow-x: hidden;
+      margin: 0;
+      padding: 0;
     }
     ::-webkit-scrollbar {
       width: 8px;
@@ -40,5 +42,10 @@
 </head>
 <body>
   <div id="root"></div>
+  <!-- 
+    ES 모듈 스크립트는 기본적으로 지연 실행(deferred)되지만, 
+    일부 환경에서의 초기화 순서 문제를 해결하기 위해 body 끝에 명시합니다. 
+  -->
+  <script type="module" src="index.tsx"></script>
 </body>
 </html>

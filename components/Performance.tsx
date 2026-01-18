@@ -146,7 +146,8 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
     
     let isMidiActive = false;
     if (map.isMidiRange) {
-      isMidiActive = Array.from(pressedMidiPitches).some(p => p >= map.midiRangeStart && p <= map.midiRangeEnd);
+      // Fix: Explicitly type 'p' as number to avoid comparison errors with "unknown" type.
+      isMidiActive = Array.from(pressedMidiPitches).some((p: number) => p >= map.midiRangeStart && p <= map.midiRangeEnd);
     } else {
       const mAllowed = String(map.midiValue).toLowerCase().split(',').map(v => v.trim());
       isMidiActive = mAllowed.some(p => pressedMidiPitches.has(Number(p)));
