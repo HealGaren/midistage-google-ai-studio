@@ -14,7 +14,7 @@ interface CompactItemEditorProps {
 
 export const CompactItemEditor: React.FC<CompactItemEditorProps> = ({ item, presets, onUpdate, onDelete, isStepView }) => {
   return (
-    <div className={`${isStepView ? 'w-full' : 'bg-slate-900 p-6 rounded-2xl border border-indigo-500 shadow-2xl w-72 ring-8 ring-slate-950/80 pointer-events-auto'} space-y-4`} onClick={(e) => e.stopPropagation()}>
+    <div className={`${isStepView ? 'w-full' : 'bg-slate-900 p-6 rounded-2xl border border-indigo-500 shadow-2xl w-80 ring-8 ring-slate-950/80 pointer-events-auto'} space-y-4`} onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between">
         <div className="flex bg-slate-800 rounded-lg p-0.5">
           <button onClick={() => onUpdate({ type: 'preset' })} className={`px-3 py-1 text-[9px] font-black uppercase rounded ${item.type === 'preset' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>Preset</button>
@@ -34,14 +34,21 @@ export const CompactItemEditor: React.FC<CompactItemEditorProps> = ({ item, pres
             </select>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col gap-1.5">
-              <span className="text-[8px] text-slate-500 uppercase font-black">Pitch ({midiToNoteName(item.noteData?.pitch || 0)})</span>
-              <input type="number" min="0" max="127" value={item.noteData?.pitch} onChange={(e) => onUpdate({ noteData: { ...item.noteData!, pitch: parseInt(e.target.value) || 0 }})} className="bg-slate-800 text-[11px] font-bold p-2.5 rounded-xl border border-slate-700 outline-none text-slate-200 focus:border-indigo-500" />
+              <span className="text-[8px] text-slate-500 uppercase font-black">Pitch</span>
+              <input type="number" min="0" max="127" value={item.noteData?.pitch} onChange={(e) => onUpdate({ noteData: { ...item.noteData!, pitch: parseInt(e.target.value) || 0 }})} className="bg-slate-800 text-[11px] font-bold p-2.5 rounded-xl border border-slate-700 outline-none text-slate-200 focus:border-indigo-500 text-center" />
+              <span className="text-[7px] font-black text-indigo-400 text-center uppercase">{midiToNoteName(item.noteData?.pitch || 0)}</span>
             </div>
             <div className="flex flex-col gap-1.5">
-              <span className="text-[8px] text-slate-500 uppercase font-black">Velocity</span>
-              <input type="number" step="0.1" value={item.noteData?.velocity} onChange={(e) => onUpdate({ noteData: { ...item.noteData!, velocity: parseFloat(e.target.value) || 0.8 }})} className="bg-slate-800 text-[11px] font-bold p-2.5 rounded-xl border border-slate-700 outline-none text-slate-200 focus:border-indigo-500" />
+              <span className="text-[8px] text-slate-500 uppercase font-black">Vel</span>
+              <input type="number" step="0.1" min="0" max="1" value={item.noteData?.velocity} onChange={(e) => onUpdate({ noteData: { ...item.noteData!, velocity: parseFloat(e.target.value) || 0.8 }})} className="bg-slate-800 text-[11px] font-bold p-2.5 rounded-xl border border-slate-700 outline-none text-slate-200 focus:border-indigo-500 text-center" />
+              <span className="text-[7px] font-black text-slate-600 text-center uppercase">0.0-1.0</span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[8px] text-slate-500 uppercase font-black">Ch</span>
+              <input type="number" min="1" max="16" value={item.noteData?.channel || 1} onChange={(e) => onUpdate({ noteData: { ...item.noteData!, channel: parseInt(e.target.value) || 1 }})} className="bg-slate-800 text-[11px] font-bold p-2.5 rounded-xl border border-slate-700 outline-none text-slate-200 focus:border-indigo-500 text-center" />
+              <span className="text-[7px] font-black text-slate-600 text-center uppercase">1-16</span>
             </div>
           </div>
         )}

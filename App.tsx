@@ -39,7 +39,7 @@ const App: React.FC = () => {
   const [isMidiReady, setIsMidiReady] = useState(false);
 
   const currentSong = project.songs.find(s => s.id === currentSongId) || project.songs[0];
-  const { activeMidiNotes, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences } = useMidiEngine(project, currentSong);
+  const { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences } = useMidiEngine(project, currentSong);
 
   useEffect(() => {
     midiService.init().then(() => setIsMidiReady(true));
@@ -56,16 +56,14 @@ const App: React.FC = () => {
 
   const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene', targetId: string, isRelease: boolean, triggerValue: string | number) => {
     if (isRelease && actionType !== 'switch_scene') {
-      // Fix: Corrected argument ordering for triggerPreset (7th: triggerValue, 8th: isSustainedMode)
-      if (actionType === 'preset') triggerPreset(targetId, true, null, 'ms', currentSong.bpm, mappingId, triggerValue, false);
+      if (actionType === 'preset') triggerPreset(targetId, true, undefined, 'ms', currentSong.bpm, mappingId, triggerValue, false);
       else if (actionType === 'sequence') triggerSequence(targetId, mappingId, true, triggerValue);
       return;
     }
 
     if (!isRelease) {
       if (actionType === 'preset') {
-        // Fix: Corrected argument ordering for triggerPreset (7th: triggerValue, 8th: isSustainedMode)
-        triggerPreset(targetId, false, null, 'ms', currentSong.bpm, mappingId, triggerValue, false);
+        triggerPreset(targetId, false, undefined, 'ms', currentSong.bpm, mappingId, triggerValue, false);
       } else if (actionType === 'sequence') {
         triggerSequence(targetId, mappingId, false, triggerValue);
       } else if (actionType === 'switch_scene') {
@@ -85,36 +83,67 @@ const App: React.FC = () => {
     }
   }, [project.songs, currentSongId, resetAllSequences]);
 
+  // Global Keyboard Triggers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      project.globalMappings.forEach(gm => { if (gm.triggerType === 'keyboard' && gm.triggerValue === e.key) handleGlobalActionTrigger(gm); });
+      const key = e.key.toLowerCase();
+      project.globalMappings.forEach(gm => {
+        const allowedKeys = gm.keyboardValue.toLowerCase().split(',').map(v => v.trim());
+        if (allowedKeys.includes(key)) {
+          handleGlobalActionTrigger(gm);
+        }
+      });
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [project.globalMappings, handleGlobalActionTrigger]);
 
+  // Global MIDI Triggers
+  useEffect(() => {
+    const input = midiService.getInputById(project.selectedInputId);
+    if (!input) return;
+
+    const onNoteOn = (e: any) => {
+      const pitch = String(e.note.number);
+      const channel = e.message.channel;
+
+      project.globalMappings.forEach(gm => {
+        const channelMatch = gm.midiChannel === 0 || gm.midiChannel === channel;
+        if (!channelMatch) return;
+
+        const allowedNotes = gm.midiValue.toLowerCase().split(',').map(v => v.trim());
+        if (allowedNotes.includes(pitch)) {
+          handleGlobalActionTrigger(gm);
+        }
+      });
+    };
+
+    input.addListener('noteon', onNoteOn);
+    return () => input.removeListener('noteon', onNoteOn);
+  }, [project.selectedInputId, project.globalMappings, handleGlobalActionTrigger]);
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-950 text-slate-100 font-sans">
       <header className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800 shadow-xl z-20">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl">M</div>
+          <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl shadow-[0_0_20px_rgba(79,70,229,0.5)]">M</div>
           <div><h1 className="text-lg font-bold tracking-tight">MidiStage</h1><p className="text-xs text-slate-400 font-medium">{project.name}</p></div>
         </div>
         <div className="flex gap-2">
           {(['performance', 'editor', 'settings'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === tab ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>{tab === 'performance' ? 'Live' : tab === 'editor' ? 'Editor' : 'Settings'}</button>
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-500'}`}>{tab === 'performance' ? 'Live' : tab === 'editor' ? 'Editor' : 'Settings'}</button>
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={stopAllNotes} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-md text-xs font-bold uppercase tracking-wider">Panic</button>
+          <button onClick={stopAllNotes} className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95">Panic</button>
         </div>
       </header>
       <div className="flex flex-1 overflow-hidden">
         <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />
-        <main className="flex-1 relative overflow-auto p-8 bg-slate-950">
+        <main className="flex-1 relative overflow-auto p-8 bg-slate-950 custom-scrollbar">
           {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={handleUpdateSong} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
-          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} />}
+          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} />}
           {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} />}
         </main>
       </div>

@@ -78,11 +78,14 @@ const Editor: React.FC<EditorProps> = ({ song, onUpdateSong, sendNoteOn, sendNot
                   <div className="flex items-center justify-center h-full text-slate-700 font-black uppercase tracking-[0.3em] opacity-30">Select a preset to begin editing</div>
                 )
               ) : selectedSequence ? (
+                /* Passing required sendNoteOn and sendNoteOff props to SequenceEditor */
                 <SequenceEditor 
                   sequence={selectedSequence}
                   song={song}
                   onUpdate={(u) => onUpdateSong({...song, sequences: song.sequences.map(s => s.id === selectedSequence.id ? {...s, ...u} : s)})}
                   onUpdateSong={onUpdateSong}
+                  sendNoteOn={sendNoteOn}
+                  sendNoteOff={sendNoteOff}
                 />
               ) : (
                 <div className="h-full flex items-center justify-center text-slate-700 font-black uppercase tracking-[0.3em] opacity-30">Select a sequence to begin editing</div>

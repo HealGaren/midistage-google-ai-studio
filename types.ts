@@ -39,12 +39,12 @@ export interface PresetFolder {
   name: string;
 }
 
-export type SequenceItemType = 'preset' | 'note';
+export type SequenceItemType = 'preset' | 'note' | 'sequence';
 
 export interface SequenceItem {
   id: string;
   type: SequenceItemType;
-  targetId?: string; // Preset ID
+  targetId?: string; // Preset ID or Sequence ID
   noteData?: Omit<NoteItem, 'id'>; // Direct note data
   beatPosition: number; // Position in beats from the start
   overrideDuration?: number | null;
@@ -54,7 +54,8 @@ export interface SequenceItem {
 
 export enum SequenceMode {
   AUTO = 'AUTO',
-  STEP = 'STEP'
+  STEP = 'STEP',
+  GROUP = 'GROUP'
 }
 
 export interface Sequence {
@@ -91,9 +92,9 @@ export type GlobalActionType = 'RESET_SEQUENCES' | 'PREV_SONG' | 'NEXT_SONG' | '
 
 export interface GlobalMapping {
   id: string;
-  triggerType: TriggerType;
-  triggerValue: string | number;
-  triggerChannel: number;
+  keyboardValue: string;
+  midiValue: string; // comma separated notes
+  midiChannel: number; // 0 for Omni, 1-16
   actionType: GlobalActionType;
   actionValue?: number;
   isEnabled: boolean;
