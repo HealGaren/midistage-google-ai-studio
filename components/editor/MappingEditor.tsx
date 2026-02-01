@@ -187,6 +187,7 @@ export const MappingEditor: React.FC<MappingEditorProps> = ({ song, onUpdateSong
                  <span className="text-[9px] text-slate-600 font-black uppercase px-1">Action</span>
                  <select value={map.actionType} onChange={(e) => updateMapping(map.id, { actionType: e.target.value as any, actionTargetId: '' })} className="bg-slate-900 p-3 rounded-xl text-[10px] font-bold border border-slate-700 outline-none text-slate-200">
                    <option value="preset">Preset</option>
+                   <option value="toggle_preset">Toggle Preset</option>
                    <option value="sequence">Sequence</option>
                    <option value="switch_scene">Switch Scene</option>
                  </select>
@@ -197,7 +198,7 @@ export const MappingEditor: React.FC<MappingEditorProps> = ({ song, onUpdateSong
                  <span className="text-[9px] text-slate-600 font-black uppercase px-1">Target</span>
                  <select value={map.actionTargetId} onChange={(e) => updateMapping(map.id, { actionTargetId: e.target.value })} className="bg-slate-900 p-3 rounded-xl text-[10px] font-bold border border-slate-700 outline-none text-slate-200">
                    <option value="">Select...</option>
-                   {map.actionType === 'preset' && song.presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                   {(map.actionType === 'preset' || map.actionType === 'toggle_preset') && song.presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                    {map.actionType === 'sequence' && song.sequences.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                    {map.actionType === 'switch_scene' && song.scenes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                  </select>

@@ -82,7 +82,7 @@ export interface InputMapping {
   midiRangeStart: number;
   midiRangeEnd: number;
 
-  actionType: 'preset' | 'sequence' | 'switch_scene';
+  actionType: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset';
   actionTargetId: string;
   isEnabled: boolean;
   scope: MappingScope;

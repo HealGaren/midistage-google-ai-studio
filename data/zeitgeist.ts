@@ -285,7 +285,7 @@ export function createZeitgeistSong(): Song {
       isMidiRange: false,
       midiRangeStart: 0,
       midiRangeEnd: 127,
-      actionType: 'preset',
+      actionType: 'toggle_preset',
       actionTargetId: globalNoisePreset.id,
       isEnabled: true,
       scope: 'scene'

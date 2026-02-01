@@ -33,6 +33,9 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
   const lastGroupTriggerByInstanceRef = useRef<Map<string, { groupIdx: number, subIdx: number }>>(new Map());
   const lastTriggerTimeByMappingRef = useRef<Map<string, number>>(new Map());
   
+  // Toggle preset state tracking: key = presetId, value = isOn
+  const togglePresetStateRef = useRef<Map<string, boolean>>(new Map());
+  
   // Reference counting for overlapping notes (same channel+pitch from different sources)
   // Key: "channel-pitch", Value: count of active sources holding this note
   const noteRefCountRef = useRef<Map<string, number>>(new Map());
@@ -411,5 +414,32 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
     lastTriggerTimeByMappingRef.current.clear();
   }, [clearSustainedNotes]);
 
-  return { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences };
+  const triggerTogglePreset = useCallback((presetId: string, mappingId: string = 'ui', triggerValue: string | number = 'direct') => {
+    const preset = currentSong.presets.find(p => p.id === presetId);
+    if (!preset) return;
+    
+    const isCurrentlyOn = togglePresetStateRef.current.get(presetId) || false;
+    
+    if (isCurrentlyOn) {
+      // Turn OFF: send note off for all notes in preset
+      preset.notes.forEach(note => {
+        sendNoteOff(note.pitch, note.channel);
+      });
+      togglePresetStateRef.current.set(presetId, false);
+    } else {
+      // Turn ON: send note on for all notes in preset (sustained indefinitely)
+      preset.notes.forEach(note => {
+        sendNoteOn(note.pitch, note.velocity, note.channel, null);
+      });
+      togglePresetStateRef.current.set(presetId, true);
+    }
+    
+    return !isCurrentlyOn; // Return new state
+  }, [currentSong, sendNoteOn, sendNoteOff]);
+
+  const getTogglePresetState = useCallback((presetId: string): boolean => {
+    return togglePresetStateRef.current.get(presetId) || false;
+  }, []);
+
+  return { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences, triggerTogglePreset, getTogglePresetState };
 };

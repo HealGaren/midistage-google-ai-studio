@@ -91,7 +91,7 @@ const App: React.FC = () => {
   const [ccStates, setCCStates] = useState<Record<string, number>>({}); // key: "channel-cc", value: 0-127
 
   const currentSong = project.songs.find(s => s.id === currentSongId) || project.songs[0];
-  const { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences } = useMidiEngine(project, currentSong);
+  const { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences, triggerTogglePreset, getTogglePresetState } = useMidiEngine(project, currentSong);
 
   useEffect(() => {
     midiService.init().then(() => setIsMidiReady(true));
@@ -106,7 +106,15 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene', targetId: string, isRelease: boolean, triggerValue: string | number) => {
+  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset', targetId: string, isRelease: boolean, triggerValue: string | number) => {
+    // toggle_preset은 릴리즈 무시, 누를 때만 토글
+    if (actionType === 'toggle_preset') {
+      if (!isRelease) {
+        triggerTogglePreset(targetId, mappingId, triggerValue);
+      }
+      return;
+    }
+
     if (isRelease && actionType !== 'switch_scene') {
       if (actionType === 'preset') triggerPreset(targetId, true, undefined, 'ms', currentSong.bpm, mappingId, triggerValue, false);
       else if (actionType === 'sequence') triggerSequence(targetId, mappingId, true, triggerValue);
@@ -122,7 +130,7 @@ const App: React.FC = () => {
         handleUpdateSong({ ...currentSong, activeSceneId: targetId });
       }
     }
-  }, [triggerPreset, triggerSequence, currentSong, handleUpdateSong]);
+  }, [triggerPreset, triggerSequence, triggerTogglePreset, currentSong, handleUpdateSong]);
 
   const handleGlobalActionTrigger = useCallback((action: GlobalMapping) => {
     if (!action.isEnabled) return;
@@ -288,7 +296,7 @@ const App: React.FC = () => {
         <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />
         <main className="flex-1 relative overflow-auto p-8 bg-slate-950 custom-scrollbar">
           {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={handleUpdateSong} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
-          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} />}
+          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} />}
           {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} />}
         </main>
       </div>

@@ -7,7 +7,8 @@ interface PerformanceProps {
   song: Song;
   activeNotes: ActiveNoteState[];
   stepPositions: Record<string, number>;
-  onTrigger: (mappingId: string, type: 'preset' | 'sequence' | 'switch_scene', targetId: string, isRelease: boolean, triggerValue: string | number) => void;
+  onTrigger: (mappingId: string, type: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset', targetId: string, isRelease: boolean, triggerValue: string | number) => void;
+  getTogglePresetState?: (presetId: string) => boolean;
   selectedInputId: string;
   onUpdateSong: (song: Song) => void;
   ccStates: Record<string, number>; // key: "channel-cc", value: 0-127
@@ -32,7 +33,7 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
   );
 };
 
-const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates }) => {
+const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState }) => {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   // Store as "channel-pitch" string to include channel info
   const [pressedMidiNotes, setPressedMidiNotes] = useState<Set<string>>(new Set());
@@ -140,8 +141,8 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
     return () => { input.removeListener('noteon', onNoteOn); input.removeListener('noteoff', onNoteOff); };
   }, [selectedInputId, findMappings, onTrigger]);
 
-  const getActionName = (type: 'preset' | 'sequence' | 'switch_scene', id: string) => {
-    if (type === 'preset') return song.presets.find(p => p.id === id)?.name || 'Unknown Preset';
+  const getActionName = (type: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset', id: string) => {
+    if (type === 'preset' || type === 'toggle_preset') return song.presets.find(p => p.id === id)?.name || 'Unknown Preset';
     if (type === 'sequence') return song.sequences.find(s => s.id === id)?.name || 'Unknown Sequence';
     return song.scenes.find(s => s.id === id)?.name || 'Unknown Scene';
   };
