@@ -5,6 +5,7 @@ import { EditorSidebar } from './editor/EditorSidebar';
 import { PresetEditor } from './editor/PresetEditor';
 import { SequenceEditor } from './editor/SequenceEditor';
 import { MappingEditor } from './editor/MappingEditor';
+import { CCMappingEditor } from './editor/CCMappingEditor';
 import { SceneEditor } from './editor/SceneEditor';
 
 interface EditorProps {
@@ -16,7 +17,7 @@ interface EditorProps {
 }
 
 const Editor: React.FC<EditorProps> = ({ song, onUpdateSong, sendNoteOn, sendNoteOff, selectedInputId }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'presets' | 'sequences' | 'scenes' | 'mappings'>('presets');
+  const [activeSubTab, setActiveSubTab] = useState<'presets' | 'sequences' | 'scenes' | 'mappings' | 'cc'>('presets');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(song.presets?.[0]?.id || null);
   const [selectedSequenceId, setSelectedSequenceId] = useState<string | null>(song.sequences?.[0]?.id || null);
 
@@ -39,13 +40,13 @@ const Editor: React.FC<EditorProps> = ({ song, onUpdateSong, sendNoteOn, sendNot
           </div>
         </div>
         <div className="flex gap-12 border-b border-slate-800/50">
-          {(['presets', 'sequences', 'scenes', 'mappings'] as const).map(tab => (
+          {(['presets', 'sequences', 'scenes', 'mappings', 'cc'] as const).map(tab => (
             <button 
               key={tab} 
               onClick={() => setActiveSubTab(tab)} 
               className={`pb-5 px-2 text-[11px] font-black uppercase tracking-[0.25em] relative transition-all ${activeSubTab === tab ? 'text-indigo-400' : 'text-slate-600 hover:text-slate-300'}`}
             >
-              {tab} 
+              {tab === 'cc' ? 'CC Mapping' : tab} 
               {activeSubTab === tab && <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,1)] rounded-t-full" />}
             </button>
           ))}
@@ -100,6 +101,10 @@ const Editor: React.FC<EditorProps> = ({ song, onUpdateSong, sendNoteOn, sendNot
 
         {activeSubTab === 'mappings' && (
           <MappingEditor song={song} onUpdateSong={onUpdateSong} selectedInputId={selectedInputId} />
+        )}
+
+        {activeSubTab === 'cc' && (
+          <CCMappingEditor song={song} onUpdateSong={onUpdateSong} selectedInputId={selectedInputId} />
         )}
       </div>
     </div>

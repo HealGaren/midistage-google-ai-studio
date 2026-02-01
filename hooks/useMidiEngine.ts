@@ -251,21 +251,48 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
         });
       }
     } else if (seq.mode === SequenceMode.GROUP) {
+      // GROUP 모드: 시퀀스 아이템들을 순서대로 스텝 실행
+      // 아이템이 하위 시퀀스(type: 'sequence')일 경우 그 안의 아이템들을 순회
+      // 아이템이 프리셋/노트(type: 'preset' | 'note')일 경우 직접 실행
+      
+      // 하위 시퀀스가 있는지 확인
+      const hasSubSequences = seq.items.some(item => item.type === 'sequence');
+      
       if (isRelease) {
         if (activeMappingByTargetRef.current.get(seqId) !== instanceId) return;
         
-        // 마지막으로 트리거된 그룹 내 아이템 정보 가져오기
-        const lastGroupTrigger = lastGroupTriggerByInstanceRef.current.get(instanceId);
-        if (lastGroupTrigger) {
-          const groupItem = seq.items[lastGroupTrigger.groupIdx];
-          if (groupItem && groupItem.type === 'sequence') {
-            const subSeq = currentSong.sequences.find(s => s.id === groupItem.targetId);
-            const triggeredItem = subSeq?.items[lastGroupTrigger.subIdx];
-            
-            // Sustain 속성이 꺼져있다면 릴리즈 시 소리 종료
+        if (hasSubSequences) {
+          // 기존 하위 시퀀스 릴리즈 로직
+          const lastGroupTrigger = lastGroupTriggerByInstanceRef.current.get(instanceId);
+          if (lastGroupTrigger) {
+            const groupItem = seq.items[lastGroupTrigger.groupIdx];
+            if (groupItem && groupItem.type === 'sequence') {
+              const subSeq = currentSong.sequences.find(s => s.id === groupItem.targetId);
+              const triggeredItem = subSeq?.items[lastGroupTrigger.subIdx];
+              
+              if (triggeredItem && !triggeredItem.sustainUntilNext) {
+                if (triggeredItem.type === 'preset' && triggeredItem.targetId) {
+                  triggerPreset(triggeredItem.targetId, true, triggeredItem.overrideDuration, triggeredItem.overrideDurationUnit ?? 'ms', subSeq?.bpm || effectiveBpm, mappingId, triggerValue, false, seqId);
+                } else if (triggeredItem.type === 'note' && triggeredItem.noteData) {
+                  const timerKey = `${seqId}_${mappingId}_${triggerValue}_${triggeredItem.noteData.pitch}`;
+                  const existing = noteTimersRef.current.get(timerKey);
+                  if (existing) {
+                    if (existing.onTimeout) clearTimeout(existing.onTimeout);
+                    if (existing.isPlaying) sendNoteOff(triggeredItem.noteData.pitch, triggeredItem.noteData.channel);
+                    noteTimersRef.current.delete(timerKey);
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          // 직접 아이템 릴리즈 로직 (프리셋/노트를 직접 포함하는 경우)
+          const triggeredIdx = lastTriggeredIndexByInstanceRef.current.get(instanceId);
+          if (triggeredIdx !== undefined) {
+            const triggeredItem = seq.items[triggeredIdx];
             if (triggeredItem && !triggeredItem.sustainUntilNext) {
               if (triggeredItem.type === 'preset' && triggeredItem.targetId) {
-                triggerPreset(triggeredItem.targetId, true, triggeredItem.overrideDuration, triggeredItem.overrideDurationUnit ?? 'ms', subSeq?.bpm || effectiveBpm, mappingId, triggerValue, false, seqId);
+                triggerPreset(triggeredItem.targetId, true, triggeredItem.overrideDuration, triggeredItem.overrideDurationUnit ?? 'ms', effectiveBpm, mappingId, triggerValue, false, seqId);
               } else if (triggeredItem.type === 'note' && triggeredItem.noteData) {
                 const timerKey = `${seqId}_${mappingId}_${triggerValue}_${triggeredItem.noteData.pitch}`;
                 const existing = noteTimersRef.current.get(timerKey);
@@ -278,7 +305,6 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
             }
           }
         }
-        // 그룹 자체의 지속 노트들 정리
         clearSustainedNotes(seqId);
       } else {
         const now = Date.now();
@@ -286,44 +312,54 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
         if (now - lastTime < 30) return;
         lastTriggerTimeByMappingRef.current.set(instanceId, now);
         
-        // 새로운 음을 누르기 전에 이전 서스테인 노트들 명시적으로 정리
         clearSustainedNotes(seqId);
         activeMappingByTargetRef.current.set(seqId, instanceId);
         
-        const groupState = groupIndicesRef.current[seqId] || { groupIdx: 0, subIdx: 0 };
-        const groupItem = seq.items[groupState.groupIdx];
-        
-        if (groupItem && groupItem.type === 'sequence') {
-          const subSeq = currentSong.sequences.find(s => s.id === groupItem.targetId);
-          if (subSeq) {
-            const item = subSeq.items[groupState.subIdx];
-            if (item) {
-              // 현재 트리거 정보를 인스턴스별로 저장 (릴리즈 처리를 위해)
-              lastGroupTriggerByInstanceRef.current.set(instanceId, { ...groupState });
-              triggerSequenceItem(item, subSeq.bpm || effectiveBpm, mappingId, triggerValue, seqId);
+        if (hasSubSequences) {
+          // 기존 하위 시퀀스 트리거 로직
+          const groupState = groupIndicesRef.current[seqId] || { groupIdx: 0, subIdx: 0 };
+          const groupItem = seq.items[groupState.groupIdx];
+          
+          if (groupItem && groupItem.type === 'sequence') {
+            const subSeq = currentSong.sequences.find(s => s.id === groupItem.targetId);
+            if (subSeq) {
+              const item = subSeq.items[groupState.subIdx];
+              if (item) {
+                lastGroupTriggerByInstanceRef.current.set(instanceId, { ...groupState });
+                triggerSequenceItem(item, subSeq.bpm || effectiveBpm, mappingId, triggerValue, seqId);
+              }
+              
+              let absolutePos = 0;
+              for (let i = 0; i < groupState.groupIdx; i++) {
+                const prevItem = seq.items[i];
+                const prevSeq = currentSong.sequences.find(s => s.id === prevItem.targetId);
+                absolutePos += prevSeq?.items.length || 0;
+              }
+              absolutePos += groupState.subIdx;
+              
+              let nextSubIdx = groupState.subIdx + 1;
+              let nextGroupIdx = groupState.groupIdx;
+              
+              if (nextSubIdx >= subSeq.items.length) {
+                nextSubIdx = 0;
+                nextGroupIdx = (groupState.groupIdx + 1) % seq.items.length;
+              }
+              
+              groupIndicesRef.current[seqId] = { groupIdx: nextGroupIdx, subIdx: nextSubIdx };
+              setStepPositions(prev => ({ ...prev, [seqId]: absolutePos }));
             }
-            
-            // UI에 표시할 절대 포지션 계산 (이전 시퀀스들의 스텝 합 + 현재 서브 인덱스)
-            let absolutePos = 0;
-            for (let i = 0; i < groupState.groupIdx; i++) {
-              const prevItem = seq.items[i];
-              const prevSeq = currentSong.sequences.find(s => s.id === prevItem.targetId);
-              absolutePos += prevSeq?.items.length || 0;
-            }
-            absolutePos += groupState.subIdx;
-            
-            // 상태 업데이트
-            let nextSubIdx = groupState.subIdx + 1;
-            let nextGroupIdx = groupState.groupIdx;
-            
-            if (nextSubIdx >= subSeq.items.length) {
-              nextSubIdx = 0;
-              nextGroupIdx = (groupState.groupIdx + 1) % seq.items.length;
-            }
-            
-            groupIndicesRef.current[seqId] = { groupIdx: nextGroupIdx, subIdx: nextSubIdx };
-            setStepPositions(prev => ({ ...prev, [seqId]: absolutePos }));
           }
+        } else {
+          // 직접 아이템 트리거 로직 (프리셋/노트를 직접 포함하는 경우 - STEP 모드와 유사)
+          const currentIndex = stepIndicesRef.current[seqId] || 0;
+          const item = seq.items[currentIndex];
+          if (item) {
+            lastTriggeredIndexByInstanceRef.current.set(instanceId, currentIndex);
+            triggerSequenceItem(item, effectiveBpm, mappingId, triggerValue, seqId);
+          }
+          const nextIndex = (currentIndex + 1) % seq.items.length;
+          stepIndicesRef.current[seqId] = nextIndex;
+          setStepPositions(prev => ({ ...prev, [seqId]: currentIndex }));
         }
       }
     }

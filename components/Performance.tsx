@@ -10,6 +10,7 @@ interface PerformanceProps {
   onTrigger: (mappingId: string, type: 'preset' | 'sequence' | 'switch_scene', targetId: string, isRelease: boolean, triggerValue: string | number) => void;
   selectedInputId: string;
   onUpdateSong: (song: Song) => void;
+  ccStates: Record<string, number>; // key: "channel-cc", value: 0-127
 }
 
 const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
@@ -31,7 +32,7 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
   );
 };
 
-const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong }) => {
+const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates }) => {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   const [pressedMidiPitches, setPressedMidiPitches] = useState<Set<number>>(new Set());
 
@@ -169,15 +170,19 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
         const currentCount = currentPos + 1;
         
         let totalSteps = seq.items.length;
-        // GROUP 모드일 경우 하위 시퀀스들의 모든 스텝 수를 합산
+        // GROUP 모드일 경우: 하위 시퀀스가 있으면 그 스텝 수를 합산, 아니면 아이템 수 그대로 사용
         if (seq.mode === SequenceMode.GROUP) {
-          totalSteps = seq.items.reduce((acc, item) => {
+          const subSeqSteps = seq.items.reduce((acc, item) => {
             if (item.type === 'sequence') {
               const subSeq = song.sequences.find(s => s.id === item.targetId);
               return acc + (subSeq?.items.length || 0);
             }
             return acc;
           }, 0);
+          // 하위 시퀀스가 있으면 그 합계 사용, 없으면 아이템 수 그대로
+          if (subSeqSteps > 0) {
+            totalSteps = subSeqSteps;
+          }
         }
 
         sequenceProgress = {
@@ -300,6 +305,68 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
         </div>
 
         <div className="lg:col-span-4 space-y-6">
+          {/* CC Controllers Section */}
+          <div className="bg-slate-900/60 backdrop-blur-sm rounded-3xl border border-slate-800 p-6 shadow-inner">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Controllers</h3>
+              <span className="text-[9px] text-slate-600">CH 1</span>
+            </div>
+            
+            {/* Modulation Bar (CC 22) */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-bold text-slate-400">Modulation</span>
+                <span className="text-[10px] font-mono text-slate-500">{ccStates['1-22'] ?? 0}</span>
+              </div>
+              <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-75 rounded-full"
+                  style={{ width: `${((ccStates['1-22'] ?? 0) / 127) * 100}%` }}
+                />
+              </div>
+            </div>
+            
+            {/* 8 Knobs (CC 21-28) */}
+            <div className="grid grid-cols-4 gap-3">
+              {[21, 22, 23, 24, 25, 26, 27, 28].map((cc, idx) => {
+                const value = ccStates[`1-${cc}`] ?? 0;
+                const percent = (value / 127) * 100;
+                const rotation = -135 + (percent / 100) * 270; // -135 to 135 degrees
+                return (
+                  <div key={cc} className="flex flex-col items-center gap-1">
+                    <div className="relative w-12 h-12">
+                      {/* Knob background */}
+                      <svg className="w-full h-full" viewBox="0 0 48 48">
+                        <circle cx="24" cy="24" r="20" fill="none" stroke="#334155" strokeWidth="4" strokeLinecap="round"
+                          strokeDasharray="110 47" transform="rotate(135 24 24)" />
+                        <circle cx="24" cy="24" r="20" fill="none" stroke="url(#knobGradient)" strokeWidth="4" strokeLinecap="round"
+                          strokeDasharray={`${percent * 1.1} 157`} transform="rotate(135 24 24)" />
+                        <defs>
+                          <linearGradient id="knobGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#06b6d4" />
+                            <stop offset="100%" stopColor="#8b5cf6" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      {/* Knob indicator */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div 
+                          className="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center shadow-lg"
+                          style={{ transform: `rotate(${rotation}deg)` }}
+                        >
+                          <div className="w-0.5 h-2 bg-cyan-400 rounded-full -translate-y-1" />
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[8px] font-bold text-slate-500">K{idx + 1}</span>
+                    <span className="text-[9px] font-mono text-slate-400">{value}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Live Monitor */}
           <div className="flex items-center justify-between">
             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Live Monitor</h3>
             <div className="flex gap-1">
@@ -307,10 +374,10 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40"></div>
             </div>
           </div>
-          <div className="bg-slate-900/60 backdrop-blur-sm rounded-[40px] border border-slate-800 p-8 min-h-[500px] shadow-inner">
+          <div className="bg-slate-900/60 backdrop-blur-sm rounded-[40px] border border-slate-800 p-8 min-h-[300px] shadow-inner">
             {activeNotes.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-700 mt-20">
-                <svg className="w-16 h-16 mb-4 opacity-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
+              <div className="h-full flex flex-col items-center justify-center text-slate-700 mt-10">
+                <svg className="w-12 h-12 mb-3 opacity-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
                 <p className="text-xs font-black uppercase tracking-[0.3em] opacity-30 italic">System Silent</p>
               </div>
             ) : (

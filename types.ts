@@ -114,6 +114,7 @@ export interface Song {
   presetFolders: PresetFolder[];
   sequences: Sequence[];
   mappings: InputMapping[];
+  ccMappings: CCMapping[];
   scenes: Scene[];
   activeSceneId: string;
 }
@@ -124,6 +125,7 @@ export interface ProjectData {
   selectedInputId: string;
   selectedOutputId: string;
   globalMappings: GlobalMapping[];
+  globalCCMappings: CCMapping[];
 }
 
 export interface ActiveNoteState {
@@ -131,4 +133,35 @@ export interface ActiveNoteState {
   channel: number;
   startTime: number;
   durationMs: number | null;
+}
+
+// CC Mapping types
+export interface CCMapping {
+  id: string;
+  name: string;
+  inputChannel: number; // 0 for Omni, 1-16
+  inputCC: number; // 0-127
+  
+  // Output settings
+  outputChannel: number; // 1-16
+  outputCC: number; // 0-127
+  
+  // Processors (each can be enabled/disabled)
+  rangeEnabled: boolean;
+  rangeMin: number; // 0-127
+  rangeMax: number; // 0-127
+  
+  curveEnabled: boolean;
+  curveValue: number; // 0-1, where 0.5 is linear
+  
+  outputRemapEnabled: boolean; // if false, use input channel/cc
+  
+  isEnabled: boolean;
+  scope: MappingScope;
+}
+
+export interface CCState {
+  channel: number;
+  cc: number;
+  value: number;
 }

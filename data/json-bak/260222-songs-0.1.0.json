@@ -1,0 +1,3367 @@
+{
+  "name": "New Performance Set",
+  "songs": [
+    {
+      "id": "460bb762-7c2e-4333-9a63-668387637b8c",
+      "name": "Volcano",
+      "bpm": 120,
+      "presets": [
+        {
+          "id": "3bce3aa8-e517-4ad9-9189-0070d6b44b07",
+          "name": "G#5 Glissando",
+          "notes": [
+            {
+              "id": "32408dd1-1860-458c-a4c5-d4e056dfd955",
+              "pitch": 68,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "e6278e7a-7fa7-49dd-bccf-9391ed600b3c",
+              "pitch": 75,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "f62bc38a-bfd3-46d9-9d07-91c5032f8cba",
+              "pitch": 80,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "glissando": {
+            "attackEnabled": false,
+            "releaseEnabled": true,
+            "lowestNote": 48,
+            "targetNote": 68,
+            "speed": 30,
+            "mode": "black",
+            "lowestVelocity": 0.2,
+            "targetVelocity": 0.2
+          }
+        },
+        {
+          "id": "e83ff2fb-369e-4fac-9a65-d2ba816b4ef2",
+          "name": "B5",
+          "notes": [
+            {
+              "id": "7eb216e3-006a-45ac-a516-389fb875d538",
+              "pitch": 71,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "4c790369-2338-433f-b02f-748b10fd292d",
+              "pitch": 78,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "61756a44-ce76-457b-a29a-b50884800156",
+              "pitch": 83,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "f6fad953-4cf5-47a2-9bbb-97a5bbfd49f8",
+          "name": "IntroSlideDown1",
+          "notes": [
+            {
+              "id": "dbb8cf2d-9a44-46b7-9571-85dcd715b1d1",
+              "pitch": 64,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "b68d7150-fff6-4acf-a3a9-7df8cc8bcc6b",
+              "pitch": 76,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "folderId": "03ad9116-d0ec-47ab-8a96-fed3a41d19de"
+        },
+        {
+          "id": "839e557f-8ab6-4c29-a347-2a8ae206a9c8",
+          "name": "IntroSlideDown2",
+          "notes": [
+            {
+              "id": "dbb8cf2d-9a44-46b7-9571-85dcd715b1d1",
+              "pitch": 63,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "b68d7150-fff6-4acf-a3a9-7df8cc8bcc6b",
+              "pitch": 75,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "folderId": "03ad9116-d0ec-47ab-8a96-fed3a41d19de"
+        },
+        {
+          "id": "34abeafd-9565-41f2-8009-5849f169fef1",
+          "name": "IntroSlideDown3",
+          "notes": [
+            {
+              "id": "dbb8cf2d-9a44-46b7-9571-85dcd715b1d1",
+              "pitch": 62,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "b68d7150-fff6-4acf-a3a9-7df8cc8bcc6b",
+              "pitch": 74,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "folderId": "03ad9116-d0ec-47ab-8a96-fed3a41d19de"
+        },
+        {
+          "id": "846cd8cb-ddde-40c0-a870-7739e6073160",
+          "name": "IntroSlideDown4",
+          "notes": [
+            {
+              "id": "dbb8cf2d-9a44-46b7-9571-85dcd715b1d1",
+              "pitch": 61,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "b68d7150-fff6-4acf-a3a9-7df8cc8bcc6b",
+              "pitch": 73,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "folderId": "03ad9116-d0ec-47ab-8a96-fed3a41d19de"
+        },
+        {
+          "id": "64c53600-5c8e-46f2-93e5-8bda6c69fd11",
+          "name": "F#5",
+          "notes": [
+            {
+              "id": "63aa265d-9f5e-4838-88a8-8c1abd05c01c",
+              "pitch": 66,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "3b09afcd-c387-4a8b-9166-adc1fe58cf1d",
+              "pitch": 73,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "c4b71c79-2ec0-43f6-9d25-39202a6906c6",
+              "pitch": 78,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "7c62788c-4db4-45c8-823d-50b96eec8661",
+          "name": "IntroSlideDown5",
+          "notes": [
+            {
+              "id": "2527d8a7-4a77-43d1-99f4-37565487ab6e",
+              "pitch": 60,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "1b891e17-bc44-4522-806b-68ee14b220f8",
+              "pitch": 72,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "folderId": "03ad9116-d0ec-47ab-8a96-fed3a41d19de"
+        },
+        {
+          "id": "18320b33-edb4-4564-ba09-4e66e0793097",
+          "name": "IntroSlideDown6",
+          "notes": [
+            {
+              "id": "00cb3dc5-bf9e-4a97-bb44-b9b1d8676874",
+              "pitch": 59,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "97e153e5-b99e-46c3-87bc-9c2ffdf39737",
+              "pitch": 71,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "folderId": "03ad9116-d0ec-47ab-8a96-fed3a41d19de"
+        },
+        {
+          "id": "bb8b7bbc-355b-435d-9048-2df640110b05",
+          "name": "IntroSlideDown7",
+          "notes": [
+            {
+              "id": "11869bb6-b3f6-479f-9371-9e51d2794dea",
+              "pitch": 58,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "9eb9ca9e-ff35-4879-8a73-4b70e143a256",
+              "pitch": 70,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "folderId": "03ad9116-d0ec-47ab-8a96-fed3a41d19de"
+        },
+        {
+          "id": "74716102-b236-4346-ae18-4e6426a47f43",
+          "name": "Verse Note 1-1",
+          "notes": [
+            {
+              "id": "98b641a9-e6f2-4752-8586-827dba534c51",
+              "pitch": 54,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "2d48fd4c-d689-4d9f-9b47-79a16033d80d",
+          "name": "Verse Note 1-2",
+          "notes": [
+            {
+              "id": "78038354-4ea4-4483-a6c1-abf15222ea12",
+              "pitch": 56,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "23bcaf5d-aee6-468a-b8da-2013dc4966f1",
+          "name": "Verse Note 2-1",
+          "notes": [
+            {
+              "id": "aef3db0b-2466-43e5-af27-e9c926b58d1b",
+              "pitch": 51,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "523bbbf6-e81d-4c72-bdd4-4a6a3d2fec14",
+          "name": "Verse Note 2-2",
+          "notes": [
+            {
+              "id": "8f857aee-427c-4531-bee9-c89f0df1c809",
+              "pitch": 49,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "9b2484a2-e39a-449e-bf13-6e36a4294686",
+          "name": "Verse Note 2-3",
+          "notes": [
+            {
+              "id": "06b18638-3bee-46fb-903b-c12de0e249e6",
+              "pitch": 47,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "849b213c-5e03-431b-a33e-615f72f8ca07",
+          "name": "Verse Note 1-1 Gli",
+          "notes": [
+            {
+              "id": "3a4d2ffb-721c-4ed2-b2c7-4483dd414896",
+              "pitch": 56,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "glissando": {
+            "attackEnabled": false,
+            "releaseEnabled": true,
+            "lowestNote": 48,
+            "targetNote": 56,
+            "speed": 50,
+            "mode": "black",
+            "lowestVelocity": 0.39,
+            "targetVelocity": 0.44
+          }
+        },
+        {
+          "id": "9b5c1913-da71-466c-b54d-c49da8847f59",
+          "name": "Chorus-1",
+          "notes": [
+            {
+              "id": "78b3ec2d-7548-4f89-baa8-36accbd47b87",
+              "pitch": 56,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "9410e0d5-57fe-4a89-b3ca-9a6a526eafa4",
+              "pitch": 63,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "d5241b4a-8197-4f04-afb2-6e13fe5165e9",
+              "pitch": 68,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "0961ad79-cf6b-4eec-b046-9179794519f9",
+              "pitch": 59,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "0ee6bab5-9e55-4a4a-9a51-8e18f1b624ba",
+          "name": "Chorus-2",
+          "notes": [
+            {
+              "id": "9583d96b-0cbf-4213-b302-dcccab6ad6cc",
+              "pitch": 54,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "67243af4-3501-4bee-aa32-48e2c74feb48",
+              "pitch": 63,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "61eb87bb-70e8-4bf9-8668-0478824f9736",
+              "pitch": 66,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "09492bcb-2dd1-49e1-b6fc-20ca68bb9a11",
+              "pitch": 58,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "c1bc95fc-36cb-4888-814e-c4581ae2a1f3",
+          "name": "Chorus-3",
+          "notes": [
+            {
+              "id": "ad5098c5-b58f-416b-80b0-fefb52073640",
+              "pitch": 52,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "cb42f8de-0a68-43ae-9fe7-8576df05ece0",
+              "pitch": 64,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "88bf9a40-f140-4338-8c2d-ff001398aacd",
+              "pitch": 59,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "2d58d190-273a-4eb9-92f4-b7bbfec0a3a0",
+          "name": "Chorus-4#",
+          "notes": [
+            {
+              "id": "e1f4c804-2f52-4919-bddd-30817e67d15c",
+              "pitch": 49,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "a36cc762-e395-420c-af9b-babe35784e45",
+              "pitch": 65,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "c4d11c27-e20e-47a7-8757-d5735d3337ca",
+              "pitch": 59,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "c84c2293-59fe-49be-8ec5-11d619cc656e",
+          "name": "Chorus-4",
+          "notes": [
+            {
+              "id": "e7764e10-89a0-451b-8db8-8517db00f2a2",
+              "pitch": 49,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "9dcb3199-948e-4cfb-bd81-51068589d9ce",
+              "pitch": 61,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "f216e3b9-bf92-4ec0-aca9-f8f489cd9a8b",
+              "pitch": 56,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "5e691698-1743-426e-b742-4a332d6e3fbb",
+          "name": "Verse2-1",
+          "notes": [
+            {
+              "id": "e969785a-fd32-4608-9f5f-6211b4f4308c",
+              "pitch": 61,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": 200,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "07f93e98-c7ad-4814-90f1-a2da4235a6e8",
+              "pitch": 63,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 60,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "f551499f-b719-4ba7-a76e-d66fe4012c45",
+          "name": "Verse2-2",
+          "notes": [
+            {
+              "id": "34c8d47b-99c6-47f4-b82a-5f0aa8e8ab74",
+              "pitch": 62,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "484ad0a7-ddbf-4de3-b101-7c6ce29a582f",
+              "pitch": 66,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "9c02563c-a5af-43d3-9b48-07814771bb4e",
+          "name": "Verse2-3",
+          "notes": [
+            {
+              "id": "bc4efaf9-0776-4ea7-8d71-c51aac0d2710",
+              "pitch": 61,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": 110,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "72069692-8781-4104-ad02-c5df3e379474",
+              "pitch": 59,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 110,
+              "duration": 110,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "30feebfc-2454-4a2c-86f7-e83a50269e0b",
+              "pitch": 56,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 220,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "92a22353-a3aa-4216-b4b4-157c040c62e8",
+          "name": "Verse Note 1+1",
+          "notes": [
+            {
+              "id": "10f18162-7152-48ec-849a-ccd768a2dea2",
+              "pitch": 59,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "48c11b77-572d-458e-9ea3-f7439a8bb429",
+          "name": "Chorus-1 Gli",
+          "notes": [
+            {
+              "id": "6534cae6-8c2d-4383-8fd1-cd906d856199",
+              "pitch": 56,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "8384a6e2-b097-4e72-9dd6-5b963463151c",
+              "pitch": 63,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "60ef3173-99ac-4947-bea7-583fc022d431",
+              "pitch": 68,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "3f69f5e7-5ba1-4d26-924e-f6ec7eac9f34",
+              "pitch": 59,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ],
+          "glissando": {
+            "attackEnabled": true,
+            "releaseEnabled": false,
+            "lowestNote": 44,
+            "targetNote": 56,
+            "speed": 40,
+            "mode": "black",
+            "lowestVelocity": 0.17,
+            "targetVelocity": 0.25
+          }
+        }
+      ],
+      "presetFolders": [
+        {
+          "id": "03ad9116-d0ec-47ab-8a96-fed3a41d19de",
+          "name": "Intro slide down"
+        }
+      ],
+      "sequences": [
+        {
+          "id": "87b24983-502c-4f9b-94b8-0ac70afadcbf",
+          "name": "Intro SlideDownSeq1234",
+          "mode": "STEP",
+          "items": [
+            {
+              "id": "3e708c02-003f-4104-ab0a-40fa8282f65d",
+              "type": "preset",
+              "targetId": "f6fad953-4cf5-47a2-9bbb-97a5bbfd49f8",
+              "beatPosition": 0,
+              "overrideDuration": null,
+              "overrideDurationUnit": "ms",
+              "sustainUntilNext": false
+            },
+            {
+              "id": "5d372286-e6b6-4402-b748-04066f17bf01",
+              "type": "preset",
+              "targetId": "839e557f-8ab6-4c29-a347-2a8ae206a9c8",
+              "beatPosition": 0,
+              "overrideDuration": null,
+              "overrideDurationUnit": "ms",
+              "sustainUntilNext": false
+            },
+            {
+              "id": "ef8b233d-f40b-4515-998e-eaea83447ebb",
+              "type": "preset",
+              "targetId": "34abeafd-9565-41f2-8009-5849f169fef1",
+              "beatPosition": 0,
+              "overrideDuration": null,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 60,
+                "velocity": 0.8,
+                "channel": 1,
+                "preDelay": 0,
+                "duration": 500,
+                "durationUnit": "ms"
+              },
+              "sustainUntilNext": false
+            },
+            {
+              "id": "7ee27944-9d12-4784-8dfb-feb6a64df58d",
+              "type": "preset",
+              "targetId": "846cd8cb-ddde-40c0-a870-7739e6073160",
+              "beatPosition": 0,
+              "overrideDuration": null,
+              "overrideDurationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "c5d6e0a1-2b2d-4d12-ba80-20e81c55e009",
+          "name": "Intro SlideDownSeq4567",
+          "mode": "STEP",
+          "items": [
+            {
+              "id": "e1358b2c-bd6b-4208-baac-8355516b86ce",
+              "type": "preset",
+              "targetId": "846cd8cb-ddde-40c0-a870-7739e6073160",
+              "beatPosition": 0,
+              "overrideDuration": null,
+              "overrideDurationUnit": "ms",
+              "sustainUntilNext": false
+            },
+            {
+              "id": "53b7732a-af6f-435b-a051-7ff07d670c3d",
+              "type": "preset",
+              "targetId": "7c62788c-4db4-45c8-823d-50b96eec8661",
+              "beatPosition": 0,
+              "overrideDuration": null,
+              "overrideDurationUnit": "ms",
+              "sustainUntilNext": false
+            },
+            {
+              "id": "840aca3f-782a-4355-99d5-a6bacb15b7bb",
+              "type": "preset",
+              "targetId": "18320b33-edb4-4564-ba09-4e66e0793097",
+              "beatPosition": 0,
+              "overrideDuration": null,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 60,
+                "velocity": 0.8,
+                "channel": 1,
+                "preDelay": 0,
+                "duration": 500,
+                "durationUnit": "ms"
+              },
+              "sustainUntilNext": false
+            },
+            {
+              "id": "075ffc80-ad9c-48da-9c2b-1bc097754693",
+              "type": "preset",
+              "targetId": "bb8b7bbc-355b-435d-9048-2df640110b05",
+              "beatPosition": 0,
+              "overrideDuration": null,
+              "overrideDurationUnit": "ms"
+            }
+          ]
+        }
+      ],
+      "mappings": [
+        {
+          "id": "9cbcaec7-d5a7-40d7-a5d9-2ec1de8c09a8",
+          "keyboardValue": "s",
+          "midiValue": "50",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "3bce3aa8-e517-4ad9-9189-0070d6b44b07",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "869d32a9-6600-43d2-b73a-3b8cd207da69",
+          "keyboardValue": "d",
+          "midiValue": "52",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "e83ff2fb-369e-4fac-9a65-d2ba816b4ef2",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "1b800133-4306-4bf8-9dc3-579f4b3087ec",
+          "keyboardValue": "a",
+          "midiValue": "48",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "64c53600-5c8e-46f2-93e5-8bda6c69fd11",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "e08132f5-fad0-4ac2-adac-a163a6313473",
+          "keyboardValue": "j, k",
+          "midiValue": "71, 72",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "sequence",
+          "actionTargetId": "87b24983-502c-4f9b-94b8-0ac70afadcbf",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "5c36c510-8813-46f6-9c1b-69b7b0f49ab3",
+          "keyboardValue": "u, i",
+          "midiValue": "68, 70",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "sequence",
+          "actionTargetId": "c5d6e0a1-2b2d-4d12-ba80-20e81c55e009",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "4107cf74-1db1-4a0e-a08d-a0b6ba9c0109",
+          "keyboardValue": "1",
+          "midiValue": "36",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "switch_scene",
+          "actionTargetId": "02bf198e-17f8-4f2e-93e3-d3d43c809ad2",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "e5864866-e174-4c87-8fbb-06b736450e3a",
+          "keyboardValue": "2",
+          "midiValue": "37",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "switch_scene",
+          "actionTargetId": "9a21557f-0171-4f0e-ac53-4a54d15bad3c",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "152a7678-4991-4574-82f5-10d36807ba3d",
+          "keyboardValue": "j, p",
+          "midiValue": "71",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "74716102-b236-4346-ae18-4e6426a47f43",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "1c986d79-0aa0-4d1f-ab46-654c7e633302",
+          "keyboardValue": "k",
+          "midiValue": "72",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "2d48fd4c-d689-4d9f-9b47-79a16033d80d",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "9883d519-ae56-481d-9d8c-ca244e7e5289",
+          "keyboardValue": "o",
+          "midiValue": "70",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "23bcaf5d-aee6-468a-b8da-2013dc4966f1",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "42ce9b38-0ea7-44a9-9ce1-dad6a57361a7",
+          "keyboardValue": "i",
+          "midiValue": "68",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "523bbbf6-e81d-4c72-bdd4-4a6a3d2fec14",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "04580cb0-d61b-44b8-9125-5b5a329905d8",
+          "keyboardValue": "u",
+          "midiValue": "66",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "9b2484a2-e39a-449e-bf13-6e36a4294686",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "e1eabbcf-ba0d-4955-9b21-660e51d8361a",
+          "keyboardValue": "a, s",
+          "midiValue": "48, 52",
+          "midiChannel": 1,
+          "isMidiRange": true,
+          "midiRangeStart": 48,
+          "midiRangeEnd": 50,
+          "actionType": "preset",
+          "actionTargetId": "849b213c-5e03-431b-a33e-615f72f8ca07",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "52d3a63d-b63f-4688-9ffb-1d6e074eb052",
+          "keyboardValue": "a",
+          "midiValue": "48",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "9b5c1913-da71-466c-b54d-c49da8847f59",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "70c984a3-654b-497c-94c5-c41c07a779cc",
+          "keyboardValue": "3",
+          "midiValue": "38",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "switch_scene",
+          "actionTargetId": "49d7cfb2-796b-4701-a353-ba5646704656",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "261be97d-af3c-46fd-872e-f487588a1b56",
+          "keyboardValue": "s",
+          "midiValue": "50",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "0ee6bab5-9e55-4a4a-9a51-8e18f1b624ba",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "e495be29-a38c-40d5-bc30-944460e38b9c",
+          "keyboardValue": "d",
+          "midiValue": "52",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "c1bc95fc-36cb-4888-814e-c4581ae2a1f3",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "b18dcec4-ba09-4d47-b8e9-21cd142d1d58",
+          "keyboardValue": "r",
+          "midiValue": "54",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "2d58d190-273a-4eb9-92f4-b7bbfec0a3a0",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "723d7df4-9881-4455-a9a2-fbf15ae4550b",
+          "keyboardValue": "f",
+          "midiValue": "53",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "c84c2293-59fe-49be-8ec5-11d619cc656e",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "f2d94058-3d5f-450e-8d7b-2af8b9d47a0f",
+          "keyboardValue": "n",
+          "midiValue": "61",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "5e691698-1743-426e-b742-4a332d6e3fbb",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "2a1813fc-31aa-4f82-9bdc-6bfd3bbae993",
+          "keyboardValue": "m",
+          "midiValue": "63",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "f551499f-b719-4ba7-a76e-d66fe4012c45",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "ebea35e6-3b5b-480d-aa2d-a6a160dabc00",
+          "keyboardValue": ",",
+          "midiValue": "62",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "9c02563c-a5af-43d3-9b48-07814771bb4e",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "06a3048e-2506-4034-818a-817eb74e4044",
+          "keyboardValue": "d",
+          "midiValue": "52",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "92a22353-a3aa-4216-b4b4-157c040c62e8",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "f502df20-7885-4fe3-9207-6d260d53fb74",
+          "keyboardValue": "q",
+          "midiValue": "49",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "48c11b77-572d-458e-9ea3-f7439a8bb429",
+          "isEnabled": true,
+          "scope": "scene"
+        }
+      ],
+      "scenes": [
+        {
+          "id": "02bf198e-17f8-4f2e-93e3-d3d43c809ad2",
+          "name": "Intro",
+          "mappingIds": [
+            "9cbcaec7-d5a7-40d7-a5d9-2ec1de8c09a8",
+            "869d32a9-6600-43d2-b73a-3b8cd207da69",
+            "1b800133-4306-4bf8-9dc3-579f4b3087ec",
+            "e08132f5-fad0-4ac2-adac-a163a6313473",
+            "5c36c510-8813-46f6-9c1b-69b7b0f49ab3"
+          ]
+        },
+        {
+          "id": "9a21557f-0171-4f0e-ac53-4a54d15bad3c",
+          "name": "Verse",
+          "mappingIds": [
+            "152a7678-4991-4574-82f5-10d36807ba3d",
+            "1c986d79-0aa0-4d1f-ab46-654c7e633302",
+            "9883d519-ae56-481d-9d8c-ca244e7e5289",
+            "42ce9b38-0ea7-44a9-9ce1-dad6a57361a7",
+            "04580cb0-d61b-44b8-9125-5b5a329905d8",
+            "e1eabbcf-ba0d-4955-9b21-660e51d8361a",
+            "f2d94058-3d5f-450e-8d7b-2af8b9d47a0f",
+            "2a1813fc-31aa-4f82-9bdc-6bfd3bbae993",
+            "ebea35e6-3b5b-480d-aa2d-a6a160dabc00",
+            "06a3048e-2506-4034-818a-817eb74e4044"
+          ]
+        },
+        {
+          "id": "49d7cfb2-796b-4701-a353-ba5646704656",
+          "name": "Chorus",
+          "mappingIds": [
+            "52d3a63d-b63f-4688-9ffb-1d6e074eb052",
+            "261be97d-af3c-46fd-872e-f487588a1b56",
+            "e495be29-a38c-40d5-bc30-944460e38b9c",
+            "b18dcec4-ba09-4d47-b8e9-21cd142d1d58",
+            "723d7df4-9881-4455-a9a2-fbf15ae4550b",
+            "f502df20-7885-4fe3-9207-6d260d53fb74"
+          ]
+        }
+      ],
+      "activeSceneId": "02bf198e-17f8-4f2e-93e3-d3d43c809ad2"
+    },
+    {
+      "id": "4b57e13a-2cee-474b-9263-de501c74140e",
+      "name": "Desert Eagle",
+      "bpm": 120,
+      "presets": [
+        {
+          "id": "ae23c953-1167-4733-b942-c07828939696",
+          "name": "Intro(2)",
+          "notes": [
+            {
+              "id": "a042a2f7-3f43-4339-8de5-f5205820221c",
+              "pitch": 69,
+              "velocity": 0.5,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": 200,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "0cd29dd0-def7-46d3-882f-1426a60cfccf",
+              "pitch": 72,
+              "velocity": 0.7,
+              "channel": 1,
+              "preDelay": 300,
+              "duration": 250,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "9e777002-34e1-4de8-bfab-51e146da88cc",
+          "name": "Intro Sample",
+          "notes": []
+        },
+        {
+          "id": "1a853c34-0659-4cf8-a03c-b6cdf88c1a98",
+          "name": "Verse Chord 1",
+          "notes": [
+            {
+              "id": "a218b684-425b-4c67-a370-de43496cf898",
+              "pitch": 69,
+              "velocity": 0.6,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "2e3a1000-0348-44e1-b341-3234f61bcbc9",
+              "pitch": 74,
+              "velocity": 0.7,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "3e04a5d9-7e4a-4197-9af5-918f5637b683",
+          "name": "Verse Chord 2",
+          "notes": [
+            {
+              "id": "7a16512e-0be3-44e9-b7a3-660e95682fb8",
+              "pitch": 71,
+              "velocity": 0.6,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "a04e9813-3715-43fe-b72c-0bc60ba9f199",
+              "pitch": 76,
+              "velocity": 0.7,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "aedfc058-4643-4ba9-9822-1a00fa8ad3a5",
+          "name": "Verse Chord 3",
+          "notes": [
+            {
+              "id": "ad3f67d8-ed2e-4514-8b34-5cb4cfebec93",
+              "pitch": 69,
+              "velocity": 0.7,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "29c5aad5-1d85-4abc-84cc-5d7b28adc80d",
+              "pitch": 72,
+              "velocity": 0.7,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "5f27a03d-9404-4fe7-bf7d-aab3c714e43c",
+          "name": "Verse Synth Bass 1",
+          "notes": [
+            {
+              "id": "b36da338-7dc1-4a0f-8655-7a0795daebff",
+              "pitch": 46,
+              "velocity": 0.8,
+              "channel": 3,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "6f92f7b1-00cc-4222-b2c3-8faab8b4d069",
+              "pitch": 58,
+              "velocity": 0.4,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "2933bb3a-99cb-45f7-ab0d-a890f3735771",
+              "pitch": 65,
+              "velocity": 0.6,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "5418647f-ce24-4c0b-96f1-a0be69d134b2",
+              "pitch": 69,
+              "velocity": 0.8,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "ceb573d1-2ea0-4a1a-909d-aec132c935fa",
+          "name": "Verse Synth Bass 2",
+          "notes": [
+            {
+              "id": "2b2f4ce9-26aa-4d68-89b9-80c255a8bf8e",
+              "pitch": 45,
+              "velocity": 0.8,
+              "channel": 3,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "d791da48-9756-416c-a7d9-12de766c76d1",
+              "pitch": 57,
+              "velocity": 0.4,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "8dea19cb-d3f7-48cb-8ae4-6156061cbce8",
+              "pitch": 65,
+              "velocity": 0.6,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "d3f90081-98f2-4f2c-96f9-11636a590e8f",
+              "pitch": 67,
+              "velocity": 0.8,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "2cd09bd6-bf88-45e6-b839-0c8864e22305",
+          "name": "Verse Synth Bass 3",
+          "notes": [
+            {
+              "id": "3219b67e-55fc-4511-a81a-8469d175fc8c",
+              "pitch": 51,
+              "velocity": 0.8,
+              "channel": 3,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "715e86c4-181d-44b7-9f51-c5ce1e91abf4",
+              "pitch": 63,
+              "velocity": 0.4,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "618b89c9-fe8c-452b-bf42-972a3f8a1cb0",
+              "pitch": 67,
+              "velocity": 0.6,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "e17eb046-443e-4bd9-b743-f0b398db56b1",
+              "pitch": 70,
+              "velocity": 0.8,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "ec01009f-634d-4766-9573-5502579d5db1",
+          "name": "Verse Synth Bass 4",
+          "notes": [
+            {
+              "id": "a763f977-2bc0-4c1d-ada8-11c95409d70b",
+              "pitch": 50,
+              "velocity": 0.8,
+              "channel": 3,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "df221754-dc8c-4206-a83b-e95e185194df",
+              "pitch": 62,
+              "velocity": 0.4,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "093c6cc5-795f-457e-b01c-342037ad56ec",
+              "pitch": 67,
+              "velocity": 0.6,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "a4c4575f-91b5-43bb-b476-40d5be647431",
+              "pitch": 69,
+              "velocity": 0.8,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "ec891724-8774-4b3d-ac60-d5972db2d27e",
+          "name": "Verse Synth Bass 3-2",
+          "notes": [
+            {
+              "id": "d2aa0f91-b19b-46d6-b37f-7b22680d40ed",
+              "pitch": 48,
+              "velocity": 0.8,
+              "channel": 3,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "6993beaa-74a8-445d-9638-bea202ebcd30",
+              "pitch": 60,
+              "velocity": 0.4,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "d276c5b4-543f-45eb-8f20-85713322d150",
+              "pitch": 70,
+              "velocity": 0.6,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "f6fb5081-6375-4d58-a4e0-fd840a43f5f7",
+              "pitch": 72,
+              "velocity": 0.8,
+              "channel": 2,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "e2520a7a-b5d0-495a-90d7-100b67a0dc6d",
+          "name": "Chorus intro sample",
+          "notes": [
+            {
+              "id": "b8fde035-4f26-406f-b55d-9e9ec5a2f6e6",
+              "pitch": 57,
+              "velocity": 0.5,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "fdbb2b34-658f-4b18-9efe-524b6ed278ca",
+          "name": "Chorus Chord 1",
+          "notes": [
+            {
+              "id": "4b1fa2e1-698e-4bee-8e46-370b8a320176",
+              "pitch": 62,
+              "velocity": 0.5,
+              "channel": 4,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "d87ba4ec-2ad0-4316-b895-4b0c2dde8ecf",
+              "pitch": 69,
+              "velocity": 0.7,
+              "channel": 4,
+              "preDelay": 20,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "85446901-0726-4281-92b9-6a4704566d32",
+              "pitch": 76,
+              "velocity": 0.8,
+              "channel": 4,
+              "preDelay": 40,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "c49bb44d-cff1-48b1-8ae0-2a13deb89883",
+          "name": "Chorus Chord 2",
+          "notes": [
+            {
+              "id": "77545e6d-ff57-4081-87c4-7b63c27ef327",
+              "pitch": 64,
+              "velocity": 0.5,
+              "channel": 4,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "2178e805-78c2-4011-8205-8efb67b56bf2",
+              "pitch": 71,
+              "velocity": 0.7,
+              "channel": 4,
+              "preDelay": 20,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "24b8bd6b-ed34-43a7-ad48-0075da3e9c2e",
+              "pitch": 74,
+              "velocity": 0.8,
+              "channel": 4,
+              "preDelay": 40,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "d61a6d62-e998-4834-9840-e310e53aa3df",
+          "name": "Chorus Chord 3",
+          "notes": [
+            {
+              "id": "babde135-2af5-410c-8987-5ef9f128dd59",
+              "pitch": 57,
+              "velocity": 0.5,
+              "channel": 4,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "210275eb-cd81-40f9-bc72-b1ee7e9d8736",
+              "pitch": 64,
+              "velocity": 0.7,
+              "channel": 4,
+              "preDelay": 20,
+              "duration": null,
+              "durationUnit": "ms"
+            },
+            {
+              "id": "231e91f0-0f66-4bc9-a6b3-198bdd78f79d",
+              "pitch": 67,
+              "velocity": 0.8,
+              "channel": 4,
+              "preDelay": 40,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "c107e37a-afd0-4ac3-853a-0ab1f7e45720",
+          "name": "Sample Intro",
+          "notes": [
+            {
+              "id": "0545d98e-6361-4074-81f7-2b796b27132d",
+              "pitch": 48,
+              "velocity": 0.8,
+              "channel": 6,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "26c299f9-8516-47a5-b364-c24a9ed317f8",
+          "name": "Sample End",
+          "notes": [
+            {
+              "id": "743b9769-4b90-477f-b06f-ae92e9ae5757",
+              "pitch": 49,
+              "velocity": 0.8,
+              "channel": 6,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        }
+      ],
+      "presetFolders": [],
+      "sequences": [
+        {
+          "id": "cae0a360-caea-417c-9cbc-4c97d97cf556",
+          "name": "Bridge Lead",
+          "mode": "STEP",
+          "items": [
+            {
+              "id": "a625ff59-5cec-4731-993f-c965dcf1c0d4",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 0,
+              "overrideDuration": null,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "d881f577-1713-4c21-b925-9f8d295c399c",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 1,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "3b744a1c-3056-4af7-9fbd-cff5d874d33c",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 2,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "168df8b5-741d-48ee-ab0a-38431789cba8",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 3,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "83f7198e-bb39-4171-976f-6c7c93ec9470",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 4,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 67,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "d00f6b3e-669f-4b13-94e3-96c3dc7010a4",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 5,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "57109af3-780b-47fd-912c-745073412636",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 6,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "e744e6eb-866f-4bef-b82b-c850b5d17fb2",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 7,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 67,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "349ea5be-8fae-4f77-be31-ac5336f391d8",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 8,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 65,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "39b8a466-377a-4e3e-849e-4615e1f80dc7",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 9,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "d77d4e1b-972b-4503-b446-dd9eb3796aeb",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 10,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 65,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            }
+          ],
+          "gridSnap": 1
+        },
+        {
+          "id": "eaba682e-28a8-45fc-837b-a9d2a2389954",
+          "name": "Bridge Lead end 1",
+          "mode": "STEP",
+          "items": [
+            {
+              "id": "8079fab3-d2b3-4ba1-bfe6-8bdead7453cf",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 0,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            }
+          ],
+          "gridSnap": 1
+        },
+        {
+          "id": "ca7c64c0-a2bb-4da8-bd28-8ae029bb4647",
+          "name": "Bridge Lead end 2",
+          "mode": "STEP",
+          "items": [
+            {
+              "id": "1848ed70-191d-4622-8048-466d69c113f5",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 0,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 68,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            }
+          ],
+          "gridSnap": 1
+        },
+        {
+          "id": "093e760b-cc62-4d0b-b475-cc717ee1dd26",
+          "name": "Solo Lead 1-1",
+          "mode": "STEP",
+          "items": [
+            {
+              "id": "2ed0b64e-b77e-4adb-b102-26da9dd8ea2b",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 0,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 76,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "0334505d-eef4-4935-a824-596dd73aa419",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 1,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "570e2e8f-558b-4a55-8637-d371f6e09ce4",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 2,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "f69cedd5-1cb4-45e4-ac53-0f5790d8f6cc",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 3,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "e71acfec-a2b8-4b7f-95dd-4ac24e718374",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 4,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "d8b2a548-3469-4536-81a9-9b779c5b9554",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 5,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "d5d93ea0-849f-4264-bd07-5a930c354f1e",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 6,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 76,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "5330154c-4f63-4e6d-97ff-c476a77860fb",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 7,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "a2585ce8-3776-4272-8bc3-c0171e0bd59a",
+              "type": "note",
+              "beatPosition": 8,
+              "noteData": {
+                "pitch": 74,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "e8b2fdc1-c0b2-4026-848a-af54a95a1d4e",
+              "type": "note",
+              "beatPosition": 9,
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "c44b7cec-9891-4b5f-b8ab-9842b42edafe",
+              "type": "note",
+              "beatPosition": 10,
+              "noteData": {
+                "pitch": 68,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "4c5af320-f100-452a-91af-4148741922da",
+              "type": "note",
+              "beatPosition": 11,
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "43690bc5-bb07-43ea-90c7-627ac8bd61a7",
+              "type": "note",
+              "beatPosition": 12,
+              "noteData": {
+                "pitch": 68,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "e46a47ea-49de-498f-91e6-fde9f27a995c",
+              "type": "note",
+              "beatPosition": 13,
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "e753683e-911d-46c2-bfb1-fe014e61fe38",
+              "type": "note",
+              "beatPosition": 14,
+              "noteData": {
+                "pitch": 74,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "3abe81ee-e841-444a-94d8-85e22985f5e1",
+              "type": "note",
+              "beatPosition": 15,
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            }
+          ],
+          "gridSnap": 1
+        },
+        {
+          "id": "c9042d5c-c7ef-4b4b-9e53-4cde7ea1fb0b",
+          "name": "Solo Lead 1-2",
+          "mode": "STEP",
+          "items": [
+            {
+              "id": "ba0e7744-dbb7-40d4-859a-df163e04c820",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 0,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "f627c505-9253-4084-ab59-d37a47d928b4",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 1,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "c194e383-b637-4154-b04b-58c3c306c9db",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 2,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "12f16229-6f74-4e6d-a67a-ff14eca29abc",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 3,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "fbbdee10-fc29-4bfb-b451-94c8a292539d",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 4,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 60,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "229ea5a1-9612-4841-ab23-8b3a095f842c",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 5,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 59,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "ad41abf0-c840-4703-b7a4-3336c25ea74c",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 6,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 57,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "0a35fb7d-0c66-4f64-b042-c16bb8842f19",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 7,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 52,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "c6fc8709-76d4-420d-8959-3592cbb73cb1",
+              "type": "note",
+              "beatPosition": 8,
+              "noteData": {
+                "pitch": 57,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "c71778b5-ec43-4393-ae1f-1db501143237",
+              "type": "note",
+              "beatPosition": 9,
+              "noteData": {
+                "pitch": 59,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "7d3d6442-7b38-44bd-9596-e4b4beb9196e",
+              "type": "note",
+              "beatPosition": 10,
+              "noteData": {
+                "pitch": 60,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "7f84ee79-0d41-4990-a08a-670fe68f9a4f",
+              "type": "note",
+              "beatPosition": 11,
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "ea9096b0-a35f-4fb3-a777-b3095a5d5bbe",
+              "type": "note",
+              "beatPosition": 12,
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "b201d635-29b7-4931-a123-1d4bfc9378c3",
+              "type": "note",
+              "beatPosition": 13,
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "8d9f1cbf-97a9-4814-9a83-4921c40c4b39",
+              "type": "note",
+              "beatPosition": 14,
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "33b90041-5044-4287-be46-0c47332b6700",
+              "type": "note",
+              "beatPosition": 15,
+              "noteData": {
+                "pitch": 74,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            }
+          ],
+          "gridSnap": 1
+        },
+        {
+          "id": "f1545404-ae35-414f-aec9-c2ca8bccd6e0",
+          "name": "Solo Lead 2-1",
+          "mode": "STEP",
+          "items": [
+            {
+              "id": "8f4ddb8f-548a-49eb-b128-f6b74cd10246",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 0,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 76,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "8b27b5c6-05f9-4169-a19a-66fbfb40ec33",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 1,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "e9fb5cbd-e5af-49be-82fb-295a31b41beb",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 2,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "2ab88602-18d9-465f-97dc-e82320142a62",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 3,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "87b731df-df64-4f40-a067-cac77af2e449",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 4,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "70ac3530-68c5-4c9f-8209-b413ef13ef38",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 5,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "ed0cd77e-0f71-40b7-9f2e-78f41b47aaa2",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 6,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 76,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "571318ca-c333-46fe-8f2c-4160a22739c9",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 7,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "e2d01ef3-2d9a-416d-97e9-f1b1c7c6a082",
+              "type": "note",
+              "beatPosition": 8,
+              "noteData": {
+                "pitch": 74,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "ab1b2c11-a423-452b-bb6b-b894e0350c6f",
+              "type": "note",
+              "beatPosition": 9,
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "139f29b3-5df9-4da7-9e4e-da2481919c27",
+              "type": "note",
+              "beatPosition": 10,
+              "noteData": {
+                "pitch": 68,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "ff49b3d9-08cd-457a-9034-f661a8404f6e",
+              "type": "note",
+              "beatPosition": 11,
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "d5bcd561-3fcb-49c7-8588-3d90cd83bbe7",
+              "type": "note",
+              "beatPosition": 12,
+              "noteData": {
+                "pitch": 74,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "d66b9a62-260e-46c5-950f-1a78be0e310d",
+              "type": "note",
+              "beatPosition": 13,
+              "noteData": {
+                "pitch": 77,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "bae37e35-713a-478a-b1ca-05060061569a",
+              "type": "note",
+              "beatPosition": 14,
+              "noteData": {
+                "pitch": 76,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "453a837b-4b08-43be-9b19-33bde310e48e",
+              "type": "note",
+              "beatPosition": 15,
+              "noteData": {
+                "pitch": 74,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            }
+          ],
+          "gridSnap": 1
+        },
+        {
+          "id": "0565ccb2-c228-4b67-805d-ddb46c25aff6",
+          "name": "Solo Lead 2-2",
+          "mode": "STEP",
+          "items": [
+            {
+              "id": "00db855e-6163-4e6e-b048-6df4db5bf630",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 0,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 76,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "6f2607dc-09ee-4115-bc37-39a31aa4191c",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 1,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "60ae75b0-bdcf-4571-b05a-8035dbcd6456",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 2,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "597ba373-64f0-4440-8b61-ca30713e5c8a",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 3,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "46a925b0-aefe-4296-a74d-936c4fbc57de",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 4,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "507c54ab-cd82-4f54-916f-6cd17fc2b410",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 5,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 60,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "a7df683b-b0f6-4103-966b-764110fbd2f6",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 6,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 59,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "dc6b8974-16c6-41ab-bcb7-ecd8ab517cda",
+              "type": "note",
+              "targetId": "ae23c953-1167-4733-b942-c07828939696",
+              "beatPosition": 7,
+              "overrideDurationUnit": "ms",
+              "noteData": {
+                "pitch": 57,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "ms"
+              }
+            },
+            {
+              "id": "9ee92c63-414d-46db-9831-1415cd185523",
+              "type": "note",
+              "beatPosition": 8,
+              "noteData": {
+                "pitch": 52,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "cbc3ef47-7415-4d3e-a693-c3ae7e893a5d",
+              "type": "note",
+              "beatPosition": 9,
+              "noteData": {
+                "pitch": 57,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "237ed531-1eb8-4177-ba9d-ff449d5994e2",
+              "type": "note",
+              "beatPosition": 10,
+              "noteData": {
+                "pitch": 59,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "a8354b96-d258-444e-a40c-c82c29e75af0",
+              "type": "note",
+              "beatPosition": 11,
+              "noteData": {
+                "pitch": 60,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "f635fbc8-2595-4939-a33b-4b3e0500b17f",
+              "type": "note",
+              "beatPosition": 12,
+              "noteData": {
+                "pitch": 64,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "91405e6d-255a-46c8-b91a-b3235ea92fee",
+              "type": "note",
+              "beatPosition": 13,
+              "noteData": {
+                "pitch": 69,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "879097db-8031-4304-9124-9edabbdc0790",
+              "type": "note",
+              "beatPosition": 14,
+              "noteData": {
+                "pitch": 71,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            },
+            {
+              "id": "361ae458-0b84-4120-bb43-2edc38505ae5",
+              "type": "note",
+              "beatPosition": 15,
+              "noteData": {
+                "pitch": 72,
+                "velocity": 0.8,
+                "channel": 5,
+                "preDelay": 0,
+                "duration": null,
+                "durationUnit": "beat"
+              }
+            }
+          ],
+          "gridSnap": 1
+        },
+        {
+          "id": "fae90117-b339-4231-b25b-7dab654c18af",
+          "name": "Solo Lead 1",
+          "mode": "GROUP",
+          "items": [
+            {
+              "id": "efd9590d-4060-4da9-992b-7990b8691b2c",
+              "type": "sequence",
+              "targetId": "093e760b-cc62-4d0b-b475-cc717ee1dd26",
+              "beatPosition": 0
+            },
+            {
+              "id": "17b64b01-f051-47fc-8001-617e5157d887",
+              "type": "sequence",
+              "targetId": "c9042d5c-c7ef-4b4b-9e53-4cde7ea1fb0b",
+              "beatPosition": 1
+            }
+          ],
+          "gridSnap": 1
+        },
+        {
+          "id": "45184160-6b78-4985-ba44-4f2d4baff5c5",
+          "name": "Solo Lead 2",
+          "mode": "GROUP",
+          "items": [
+            {
+              "id": "e3b49f2a-2f92-475e-96ed-f81d4cb8a33a",
+              "type": "sequence",
+              "targetId": "f1545404-ae35-414f-aec9-c2ca8bccd6e0",
+              "beatPosition": 0
+            },
+            {
+              "id": "968b8bba-80ed-4d3c-b0cb-5c62e4c9179f",
+              "type": "sequence",
+              "targetId": "0565ccb2-c228-4b67-805d-ddb46c25aff6",
+              "beatPosition": 1
+            }
+          ],
+          "gridSnap": 1
+        }
+      ],
+      "mappings": [
+        {
+          "id": "7342e026-ee10-4a3e-87fa-2ff23a679838",
+          "keyboardValue": "a",
+          "midiValue": "48",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "ae23c953-1167-4733-b942-c07828939696",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "22dc4afc-ca34-48e3-936f-84aae5f4f339",
+          "keyboardValue": "q",
+          "midiValue": "54",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "1a853c34-0659-4cf8-a03c-b6cdf88c1a98",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "847a005d-14c8-4be4-92a9-967005bb6626",
+          "keyboardValue": "w",
+          "midiValue": "56",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "3e04a5d9-7e4a-4197-9af5-918f5637b683",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "8f40db7e-40e3-458e-8cf6-9cc48cfae296",
+          "keyboardValue": "e",
+          "midiValue": "58",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "aedfc058-4643-4ba9-9822-1a00fa8ad3a5",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "d090a702-ad0a-46f9-b408-68c094051913",
+          "keyboardValue": "j",
+          "midiValue": "60",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "5f27a03d-9404-4fe7-bf7d-aab3c714e43c",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "73ab2838-118e-439f-ad42-94f748481219",
+          "keyboardValue": "k",
+          "midiValue": "62",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "ceb573d1-2ea0-4a1a-909d-aec132c935fa",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "6544ddd9-0488-4631-8a47-b8e3b1df7ae8",
+          "keyboardValue": "l",
+          "midiValue": "64",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "2cd09bd6-bf88-45e6-b839-0c8864e22305",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "b381d2e8-75cf-434c-a6ac-cd1da14bab68",
+          "keyboardValue": ";",
+          "midiValue": "65",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "ec01009f-634d-4766-9573-5502579d5db1",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "0ef6e12d-8279-4575-a794-e3d1c53cc40b",
+          "keyboardValue": "o",
+          "midiValue": "63",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "ec891724-8774-4b3d-ac60-d5972db2d27e",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "8ff01645-7742-4637-9c73-c6c35893260f",
+          "keyboardValue": "q",
+          "midiValue": "49",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "e2520a7a-b5d0-495a-90d7-100b67a0dc6d",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "0a72ec0c-bd55-4efc-9fdd-c21b53c5491a",
+          "keyboardValue": "1",
+          "midiValue": "36",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "switch_scene",
+          "actionTargetId": "6a6bbb6a-dc26-4d19-9893-1f53ea0106da",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "a5b93589-eb27-4440-8da6-3623ea023df0",
+          "keyboardValue": "2",
+          "midiValue": "37",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "switch_scene",
+          "actionTargetId": "b2a46658-bbeb-4999-90ba-7928e6bd0ac3",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "eccaf64c-6674-45a2-8ac9-29b7ee3f677a",
+          "keyboardValue": "a",
+          "midiValue": "48",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "fdbb2b34-658f-4b18-9efe-524b6ed278ca",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "f12ba1eb-ff0e-4ede-8dfe-d2bd99e0c5df",
+          "keyboardValue": "s",
+          "midiValue": "50",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "c49bb44d-cff1-48b1-8ae0-2a13deb89883",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "4cf6bae4-5092-44c0-8a2e-a153c1ddbed8",
+          "keyboardValue": "d",
+          "midiValue": "52",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "d61a6d62-e998-4834-9840-e310e53aa3df",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "aae02f25-aad8-446a-8f9f-406966647f1e",
+          "keyboardValue": "j,k",
+          "midiValue": "65, 67, 69, 71, 72",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "sequence",
+          "actionTargetId": "cae0a360-caea-417c-9cbc-4c97d97cf556",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "75e7d612-6e30-47a6-9ce7-10e0789aba44",
+          "keyboardValue": "3",
+          "midiValue": "38",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "switch_scene",
+          "actionTargetId": "681d0313-0e70-4223-8b78-239233007d18",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "9b238112-41a4-4d69-a9da-353a52473629",
+          "keyboardValue": "4",
+          "midiValue": "39",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "switch_scene",
+          "actionTargetId": "a757eb8b-005e-405c-81bf-66415bf12f9c",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "8bf58219-9c7a-447a-a378-475152cca5c3",
+          "keyboardValue": "u",
+          "midiValue": "66",
+          "midiChannel": 1,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "sequence",
+          "actionTargetId": "eaba682e-28a8-45fc-837b-a9d2a2389954",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "c8f8171d-f98d-4fc3-a604-63942958148f",
+          "keyboardValue": "i",
+          "midiValue": "68",
+          "midiChannel": 0,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "sequence",
+          "actionTargetId": "ca7c64c0-a2bb-4da8-bd28-8ae029bb4647",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "c2a3eed6-d084-49df-87ee-5ae6ae4d2f08",
+          "keyboardValue": "l, ;, j, k",
+          "midiValue": "65, 67, 69, 71, 72",
+          "midiChannel": 0,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "sequence",
+          "actionTargetId": "fae90117-b339-4231-b25b-7dab654c18af",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "da8c0d2f-9308-49f8-bca5-2ec72fc5846d",
+          "keyboardValue": "o, p, u, i",
+          "midiValue": "66, 68, 70",
+          "midiChannel": 0,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "sequence",
+          "actionTargetId": "45184160-6b78-4985-ba44-4f2d4baff5c5",
+          "isEnabled": true,
+          "scope": "scene"
+        },
+        {
+          "id": "d59a058b-8413-41ae-9522-120ed1b2a663",
+          "keyboardValue": "z",
+          "midiValue": "42",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "c107e37a-afd0-4ac3-853a-0ab1f7e45720",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "ffe612e8-b1b6-40b6-97be-4abc0e8acdc7",
+          "keyboardValue": "x",
+          "midiValue": "43",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "26c299f9-8516-47a5-b364-c24a9ed317f8",
+          "isEnabled": true,
+          "scope": "global"
+        }
+      ],
+      "scenes": [
+        {
+          "id": "6a6bbb6a-dc26-4d19-9893-1f53ea0106da",
+          "name": "Intro",
+          "mappingIds": [
+            "7342e026-ee10-4a3e-87fa-2ff23a679838",
+            "22dc4afc-ca34-48e3-936f-84aae5f4f339",
+            "847a005d-14c8-4be4-92a9-967005bb6626",
+            "8f40db7e-40e3-458e-8cf6-9cc48cfae296",
+            "d090a702-ad0a-46f9-b408-68c094051913",
+            "73ab2838-118e-439f-ad42-94f748481219",
+            "6544ddd9-0488-4631-8a47-b8e3b1df7ae8",
+            "b381d2e8-75cf-434c-a6ac-cd1da14bab68",
+            "0ef6e12d-8279-4575-a794-e3d1c53cc40b"
+          ]
+        },
+        {
+          "id": "b2a46658-bbeb-4999-90ba-7928e6bd0ac3",
+          "name": "Chorus",
+          "mappingIds": [
+            "8ff01645-7742-4637-9c73-c6c35893260f",
+            "eccaf64c-6674-45a2-8ac9-29b7ee3f677a",
+            "f12ba1eb-ff0e-4ede-8dfe-d2bd99e0c5df",
+            "4cf6bae4-5092-44c0-8a2e-a153c1ddbed8"
+          ]
+        },
+        {
+          "id": "681d0313-0e70-4223-8b78-239233007d18",
+          "name": "Bridge",
+          "mappingIds": [
+            "aae02f25-aad8-446a-8f9f-406966647f1e",
+            "8bf58219-9c7a-447a-a378-475152cca5c3",
+            "c8f8171d-f98d-4fc3-a604-63942958148f"
+          ]
+        },
+        {
+          "id": "a757eb8b-005e-405c-81bf-66415bf12f9c",
+          "name": "Solo",
+          "mappingIds": [
+            "33713235-0059-45ef-abf9-34f4f9f3effc",
+            "0a4d2cef-1d57-4c6f-aee7-c28398b507b8",
+            "c2a3eed6-d084-49df-87ee-5ae6ae4d2f08",
+            "da8c0d2f-9308-49f8-bca5-2ec72fc5846d"
+          ]
+        }
+      ],
+      "activeSceneId": "681d0313-0e70-4223-8b78-239233007d18"
+    },
+    {
+      "id": "e53e518e-772a-4092-a06c-51d117bf9ace",
+      "name": "FM Business",
+      "bpm": 120,
+      "presets": [
+        {
+          "id": "a07136b7-4a86-4471-bc41-10184a4c8ee1",
+          "name": "Intro(1)",
+          "notes": [
+            {
+              "id": "cb966bb1-36df-4155-8ee6-20c0a3675862",
+              "pitch": 44,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "6a9587f1-aab0-4756-9a42-7b2e934b1ebf",
+          "name": "Intro(2)",
+          "notes": [
+            {
+              "id": "f81faeb1-8282-4d64-92ca-d673fd6cabe8",
+              "pitch": 45,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        },
+        {
+          "id": "3908dd5a-0b8c-4e9f-964d-76997d2f3a5a",
+          "name": "Noise",
+          "notes": [
+            {
+              "id": "334338ca-e86e-4818-b74d-2116c4600271",
+              "pitch": 46,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        }
+      ],
+      "presetFolders": [],
+      "sequences": [],
+      "mappings": [
+        {
+          "id": "c3a4a37b-1367-4ff8-bcc1-8ccac1ec261a",
+          "keyboardValue": "q",
+          "midiValue": "40",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "a07136b7-4a86-4471-bc41-10184a4c8ee1",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "cc011c2c-f9bd-42f7-aeb0-1bc6efb5fcb6",
+          "keyboardValue": "w",
+          "midiValue": "41",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "6a9587f1-aab0-4756-9a42-7b2e934b1ebf",
+          "isEnabled": true,
+          "scope": "global"
+        },
+        {
+          "id": "0674628d-bfc6-4f6f-8945-ad58fd08ef29",
+          "keyboardValue": "e",
+          "midiValue": "42",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "3908dd5a-0b8c-4e9f-964d-76997d2f3a5a",
+          "isEnabled": true,
+          "scope": "global"
+        }
+      ],
+      "scenes": [
+        {
+          "id": "a4993e79-f490-401e-8a53-571f1d4cbf68",
+          "name": "Default Scene",
+          "mappingIds": []
+        }
+      ],
+      "activeSceneId": "a4993e79-f490-401e-8a53-571f1d4cbf68"
+    },
+    {
+      "id": "534c5c10-7747-4d5e-8663-002b65c8a009",
+      "name": "Agog",
+      "bpm": 120,
+      "presets": [
+        {
+          "id": "8ab83b31-9413-49f9-8f12-7010b1d4c1c2",
+          "name": "WAH",
+          "notes": [
+            {
+              "id": "299d80fe-c862-4e5a-94c9-7e78f5216038",
+              "pitch": 40,
+              "velocity": 0.8,
+              "channel": 1,
+              "preDelay": 0,
+              "duration": null,
+              "durationUnit": "ms"
+            }
+          ]
+        }
+      ],
+      "presetFolders": [],
+      "sequences": [],
+      "mappings": [
+        {
+          "id": "61c1f6f6-a797-4dad-beb6-857a8b24a28e",
+          "keyboardValue": "z",
+          "midiValue": "40",
+          "midiChannel": 10,
+          "isMidiRange": false,
+          "midiRangeStart": 60,
+          "midiRangeEnd": 72,
+          "actionType": "preset",
+          "actionTargetId": "8ab83b31-9413-49f9-8f12-7010b1d4c1c2",
+          "isEnabled": true,
+          "scope": "global"
+        }
+      ],
+      "scenes": [
+        {
+          "id": "e88e8524-d742-489d-9127-61a2c244fe49",
+          "name": "Default Scene",
+          "mappingIds": []
+        }
+      ],
+      "activeSceneId": "e88e8524-d742-489d-9127-61a2c244fe49"
+    }
+  ],
+  "selectedInputId": "input-2",
+  "selectedOutputId": "output-1",
+  "globalMappings": [
+    {
+      "id": "d7fec7f6-dbc5-4391-b74c-5bf3f5a44000",
+      "keyboardValue": "Backspace",
+      "midiValue": "47",
+      "midiChannel": 10,
+      "actionType": "RESET_SEQUENCES",
+      "isEnabled": true
+    }
+  ]
+}

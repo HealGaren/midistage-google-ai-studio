@@ -1,7 +1,9 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { Song, ProjectData } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { downloadSongAsJson, importSongFromJson } from '../utils/songImportExport';
+import { createZeitgeistSong } from '../data/zeitgeist';
 
 interface NavigationProps {
   songs: Song[];
@@ -11,6 +13,8 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectSong, onUpdateProject }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const addSong = () => {
     // Generate a default scene ID for the new song
     const sceneId = uuidv4();
@@ -23,6 +27,7 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
       presetFolders: [],
       sequences: [],
       mappings: [],
+      ccMappings: [],
       scenes: [{ id: sceneId, name: "Default Scene", mappingIds: [] }],
       activeSceneId: sceneId
     };
@@ -37,17 +42,106 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
     if (currentSongId === id) onSelectSong(songs[0].id === id ? songs[1].id : songs[0].id);
   };
 
+  const exportCurrentSong = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentSong = songs.find(s => s.id === currentSongId);
+    if (currentSong) {
+      downloadSongAsJson(currentSong);
+    }
+  };
+
+  const importSong = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      try {
+        const content = e.target?.result;
+        if (typeof content === 'string') {
+          const importedSong = importSongFromJson(content);
+          onUpdateProject(prev => ({ ...prev, songs: [...prev.songs, importedSong] }));
+          onSelectSong(importedSong.id);
+        }
+      } catch (err) {
+        console.error("Failed to import song:", err);
+        alert("Error importing song file.");
+      }
+    };
+    fileReader.readAsText(files[0]);
+    // Reset input so same file can be imported again
+    event.target.value = '';
+  };
+
+  const importZeitgeist = () => {
+    const zeitgeistSong = createZeitgeistSong();
+    onUpdateProject(prev => {
+      // Check if reset sequence global mapping already exists
+      const hasResetMapping = prev.globalMappings.some(
+        gm => gm.midiValue === '46,47' && gm.midiChannel === 10 && gm.actionType === 'RESET_SEQUENCES'
+      );
+      
+      const newGlobalMappings = hasResetMapping ? prev.globalMappings : [
+        ...prev.globalMappings,
+        {
+          id: uuidv4(),
+          keyboardValue: 'r',
+          midiValue: '46,47',
+          midiChannel: 10, // Drum pad channel
+          actionType: 'RESET_SEQUENCES' as const,
+          actionValue: 0,
+          isEnabled: true
+        }
+      ];
+      
+      return {
+        ...prev,
+        songs: [...prev.songs, zeitgeistSong],
+        globalMappings: newGlobalMappings
+      };
+    });
+    onSelectSong(zeitgeistSong.id);
+  };
+
   return (
     <nav className="w-64 bg-slate-900/50 border-r border-slate-800 flex flex-col p-4 z-10">
-      <div className="flex items-center justify-between mb-6 px-2">
+      <input type="file" ref={fileInputRef} onChange={importSong} accept=".json" className="hidden" />
+      
+      <div className="flex items-center justify-between mb-4 px-2">
         <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Setlist</h2>
         <button 
           onClick={addSong}
           className="p-1 hover:bg-slate-700 rounded transition-colors"
+          title="Add new song"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
         </button>
       </div>
+
+      <div className="flex gap-1 mb-4 px-2">
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex-1 px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded text-[9px] font-bold uppercase tracking-wider transition-all"
+          title="Import song from JSON"
+        >
+          Import
+        </button>
+        <button
+          onClick={exportCurrentSong}
+          className="flex-1 px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded text-[9px] font-bold uppercase tracking-wider transition-all"
+          title="Export current song to JSON"
+        >
+          Export
+        </button>
+      </div>
+
+      <button
+        onClick={importZeitgeist}
+        className="mx-2 mb-4 px-2 py-2 bg-indigo-900/50 hover:bg-indigo-800/50 text-indigo-300 hover:text-indigo-200 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border border-indigo-800/50"
+        title="Import Zeitgeist song from old project"
+      >
+        + Import Zeitgeist
+      </button>
       
       <div className="flex flex-col gap-1 overflow-y-auto pr-1">
         {songs.map((song, index) => (
