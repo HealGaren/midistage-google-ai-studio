@@ -34,7 +34,8 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
 
 const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates }) => {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
-  const [pressedMidiPitches, setPressedMidiPitches] = useState<Set<number>>(new Set());
+  // Store as "channel-pitch" string to include channel info
+  const [pressedMidiNotes, setPressedMidiNotes] = useState<Set<string>>(new Set());
 
   const activeScene = useMemo(() => 
     song.scenes.find(s => s.id === song.activeSceneId), 
@@ -109,9 +110,12 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
     const onNoteOn = (e: any) => {
       const pitch = e.note.number;
       const channel = e.message.channel;
+      const noteKey = `${channel}-${pitch}`;
+      console.log(`[MIDI IN] NoteOn CH:${channel} Note:${pitch}`);
       const mappings = findMappings('midi', pitch, channel);
       if (mappings.length > 0) {
-        setPressedMidiPitches(prev => new Set(prev).add(pitch));
+        console.log(`[MIDI MATCH] Found ${mappings.length} mapping(s):`, mappings.map(m => `${m.keyboardValue}(CH:${m.midiChannel})`));
+        setPressedMidiNotes(prev => new Set(prev).add(noteKey));
         mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false, pitch));
       }
     };
@@ -119,11 +123,12 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
     const onNoteOff = (e: any) => {
       const pitch = e.note.number;
       const channel = e.message.channel;
+      const noteKey = `${channel}-${pitch}`;
       const mappings = findMappings('midi', pitch, channel);
       if (mappings.length > 0) {
-        setPressedMidiPitches(prev => {
+        setPressedMidiNotes(prev => {
           const next = new Set(prev);
-          next.delete(pitch);
+          next.delete(noteKey);
           return next;
         });
         mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true, pitch));
@@ -146,12 +151,21 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
     const isKeyboardActive = kAllowed.some(k => pressedKeys.has(k));
     
     let isMidiActive = false;
+    // Check if any pressed MIDI note matches this mapping (considering channel)
+    const mappingChannel = map.midiChannel;
     if (map.isMidiRange) {
-      // Fix: Explicitly type 'p' as number to avoid comparison errors with "unknown" type.
-      isMidiActive = Array.from(pressedMidiPitches).some((p: number) => p >= map.midiRangeStart && p <= map.midiRangeEnd);
+      isMidiActive = Array.from(pressedMidiNotes).some((noteKey: string) => {
+        const [ch, pitch] = noteKey.split('-').map(Number);
+        const channelMatch = mappingChannel === 0 || mappingChannel === ch;
+        return channelMatch && pitch >= map.midiRangeStart && pitch <= map.midiRangeEnd;
+      });
     } else {
       const mAllowed = String(map.midiValue).toLowerCase().split(',').map(v => v.trim());
-      isMidiActive = mAllowed.some(p => pressedMidiPitches.has(Number(p)));
+      isMidiActive = Array.from(pressedMidiNotes).some((noteKey: string) => {
+        const [ch, pitch] = noteKey.split('-').map(Number);
+        const channelMatch = mappingChannel === 0 || mappingChannel === ch;
+        return channelMatch && mAllowed.includes(String(pitch));
+      });
     }
 
     const isActive = isKeyboardActive || isMidiActive;

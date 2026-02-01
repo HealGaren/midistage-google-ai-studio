@@ -92,6 +92,41 @@ export const CCMappingEditor: React.FC<CCMappingEditorProps> = ({ song, onUpdate
     setSelectedMappingId(newMapping.id);
   };
 
+  const addStandardControllers = () => {
+    // Modulation (CC 1) + 8 Knobs (CC 21-28)
+    const standardCCs = [
+      { cc: 1, name: 'Modulation' },
+      { cc: 21, name: 'Knob 1' },
+      { cc: 22, name: 'Knob 2' },
+      { cc: 23, name: 'Knob 3' },
+      { cc: 24, name: 'Knob 4' },
+      { cc: 25, name: 'Knob 5' },
+      { cc: 26, name: 'Knob 6' },
+      { cc: 27, name: 'Knob 7' },
+      { cc: 28, name: 'Knob 8' },
+    ];
+
+    const newMappings: CCMapping[] = standardCCs.map(({ cc, name }) => ({
+      id: uuidv4(),
+      name,
+      inputChannel: 1,
+      inputCC: cc,
+      outputChannel: 1,
+      outputCC: cc,
+      rangeEnabled: false,
+      rangeMin: 0,
+      rangeMax: 127,
+      curveEnabled: false,
+      curveValue: 0.5,
+      outputRemapEnabled: false,
+      isEnabled: true,
+      scope: 'scene'
+    }));
+
+    onUpdateSong({ ...song, ccMappings: [...ccMappings, ...newMappings] });
+    setSelectedMappingId(newMappings[0].id);
+  };
+
   const updateMapping = (id: string, updates: Partial<CCMapping>) => {
     onUpdateSong({
       ...song,
@@ -110,14 +145,24 @@ export const CCMappingEditor: React.FC<CCMappingEditorProps> = ({ song, onUpdate
       <div className="w-72 bg-slate-900/50 rounded-3xl border border-slate-800 p-4 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">CC Mappings</h3>
-          <button
-            onClick={addCCMapping}
-            className="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={addStandardControllers}
+              className="px-2 py-1.5 bg-cyan-600 hover:bg-cyan-500 rounded-lg transition-all text-[9px] font-bold"
+              title="Add Modulation + 8 Knobs (CC 1, 21-28)"
+            >
+              +9 Std
+            </button>
+            <button
+              onClick={addCCMapping}
+              className="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all"
+              title="Add single CC mapping"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto space-y-2">

@@ -32,6 +32,10 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
   // 그룹 모드 전용 마지막 트리거 상태 추적
   const lastGroupTriggerByInstanceRef = useRef<Map<string, { groupIdx: number, subIdx: number }>>(new Map());
   const lastTriggerTimeByMappingRef = useRef<Map<string, number>>(new Map());
+  
+  // Reference counting for overlapping notes (same channel+pitch from different sources)
+  // Key: "channel-pitch", Value: count of active sources holding this note
+  const noteRefCountRef = useRef<Map<string, number>>(new Map());
 
   const calculateMs = useCallback((value: number | null, unit: DurationUnit, bpm: number): number | null => {
     if (value === null || value === undefined) return null;
@@ -42,7 +46,22 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
   const sendNoteOn = useCallback((pitch: number, velocity: number, channel: number, durationMs: number | null) => {
     const output = midiService.getOutputById(project.selectedOutputId);
     if (!output) return;
+    
+    const noteKey = `${channel}-${pitch}`;
+    const currentCount = noteRefCountRef.current.get(noteKey) || 0;
+    
+    // If note is already playing, retrigger it (Note Off then Note On)
+    // This ensures the new source's velocity/attack is applied
+    if (currentCount > 0) {
+      output.stopNote(pitch, { channels: [channel] as any });
+    }
+    
+    // Always send Note On to retrigger with new velocity
     output.playNote(pitch, { attack: velocity, channels: [channel] as any });
+    
+    // Increment reference count
+    noteRefCountRef.current.set(noteKey, currentCount + 1);
+    
     setActiveMidiNotes(prev => {
         const filtered = prev.filter(n => !(n.pitch === pitch && n.channel === channel));
         return [...filtered, { pitch, channel, startTime: Date.now(), durationMs }];
@@ -52,8 +71,19 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
   const sendNoteOff = useCallback((pitch: number, channel: number) => {
     const output = midiService.getOutputById(project.selectedOutputId);
     if (!output) return;
-    output.stopNote(pitch, { channels: [channel] as any });
-    setActiveMidiNotes(prev => prev.filter(n => !(n.pitch === pitch && n.channel === channel)));
+    
+    const noteKey = `${channel}-${pitch}`;
+    const currentCount = noteRefCountRef.current.get(noteKey) || 0;
+    
+    if (currentCount <= 1) {
+      // Last source released this note - actually send MIDI Note Off
+      output.stopNote(pitch, { channels: [channel] as any });
+      noteRefCountRef.current.delete(noteKey);
+      setActiveMidiNotes(prev => prev.filter(n => !(n.pitch === pitch && n.channel === channel)));
+    } else {
+      // Other sources still holding this note - just decrement count
+      noteRefCountRef.current.set(noteKey, currentCount - 1);
+    }
   }, [project.selectedOutputId]);
 
   const stopAllNotes = useCallback(() => {
@@ -73,6 +103,7 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
     lastTriggeredIndexByInstanceRef.current.clear();
     lastGroupTriggerByInstanceRef.current.clear();
     activeMappingByTargetRef.current.clear();
+    noteRefCountRef.current.clear(); // Clear reference counts on panic
   }, [project.selectedOutputId]);
 
   const clearSustainedNotes = useCallback((sourceId: string) => {

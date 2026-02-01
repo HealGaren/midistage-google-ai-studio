@@ -185,16 +185,56 @@ export function createZeitgeistSong(): Song {
   const simpleNoiseMappingId = uuidv4();
   
   const mappings: InputMapping[] = [
+    // Piano presets - individual keys instead of sequence
     {
-      id: pianoMappingId,
-      keyboardValue: 'a,s,d,f', // Keyboard shortcuts for piano
-      midiValue: '',
+      id: uuidv4(),
+      keyboardValue: 'a', // Keyboard 'a' -> MIDI 48
+      midiValue: '48',
       midiChannel: 1,
-      isMidiRange: true,
+      isMidiRange: false,
       midiRangeStart: 0,
-      midiRangeEnd: 54, // noteLt: 55
-      actionType: 'sequence',
-      actionTargetId: pianoSequence.id,
+      midiRangeEnd: 127,
+      actionType: 'preset',
+      actionTargetId: pianoPresets[0].id, // First piano preset
+      isEnabled: true,
+      scope: 'scene'
+    },
+    {
+      id: uuidv4(),
+      keyboardValue: 's', // Keyboard 's' -> MIDI 50
+      midiValue: '50',
+      midiChannel: 1,
+      isMidiRange: false,
+      midiRangeStart: 0,
+      midiRangeEnd: 127,
+      actionType: 'preset',
+      actionTargetId: pianoPresets[1].id, // Second piano preset
+      isEnabled: true,
+      scope: 'scene'
+    },
+    {
+      id: uuidv4(),
+      keyboardValue: 'd', // Keyboard 'd' -> MIDI 52
+      midiValue: '52',
+      midiChannel: 1,
+      isMidiRange: false,
+      midiRangeStart: 0,
+      midiRangeEnd: 127,
+      actionType: 'preset',
+      actionTargetId: pianoPresets[2].id, // Third piano preset
+      isEnabled: true,
+      scope: 'scene'
+    },
+    {
+      id: uuidv4(),
+      keyboardValue: 'f', // Keyboard 'f' -> MIDI 53
+      midiValue: '53',
+      midiChannel: 1,
+      isMidiRange: false,
+      midiRangeStart: 0,
+      midiRangeEnd: 127,
+      actionType: 'preset',
+      actionTargetId: pianoPresets[3].id, // Fourth piano preset
       isEnabled: true,
       scope: 'scene'
     },
