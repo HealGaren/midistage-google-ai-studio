@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { Song, ProjectData } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { downloadSongAsJson, importSongFromJson } from '../utils/songImportExport';
-import { createZeitgeistSong } from '../data/zeitgeist';
+import { createZeitgeistSong, createVolcanoSong, createDesertEagleSong, createFMBusinessSong, createAgogSong } from '../data';
 
 interface NavigationProps {
   songs: Song[];
@@ -73,8 +73,7 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
     event.target.value = '';
   };
 
-  const importZeitgeist = () => {
-    const zeitgeistSong = createZeitgeistSong();
+  const addSongWithGlobalMapping = (song: Song) => {
     onUpdateProject(prev => {
       // Check if reset sequence global mapping already exists
       const hasResetMapping = prev.globalMappings.some(
@@ -96,11 +95,73 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
       
       return {
         ...prev,
-        songs: [...prev.songs, zeitgeistSong],
+        songs: [...prev.songs, song],
         globalMappings: newGlobalMappings
       };
     });
-    onSelectSong(zeitgeistSong.id);
+    onSelectSong(song.id);
+  };
+
+  const importZeitgeist = () => {
+    const zeitgeistSong = createZeitgeistSong();
+    addSongWithGlobalMapping(zeitgeistSong);
+  };
+
+  const importVolcano = () => {
+    const volcanoSong = createVolcanoSong();
+    addSongWithGlobalMapping(volcanoSong);
+  };
+
+  const importDesertEagle = () => {
+    const desertEagleSong = createDesertEagleSong();
+    addSongWithGlobalMapping(desertEagleSong);
+  };
+
+  const importFMBusiness = () => {
+    const fmBusinessSong = createFMBusinessSong();
+    addSongWithGlobalMapping(fmBusinessSong);
+  };
+
+  const importAgog = () => {
+    const agogSong = createAgogSong();
+    addSongWithGlobalMapping(agogSong);
+  };
+
+  const importAllSongs = () => {
+    const allSongs = [
+      createZeitgeistSong(),
+      createVolcanoSong(),
+      createDesertEagleSong(),
+      createFMBusinessSong(),
+      createAgogSong()
+    ];
+    
+    onUpdateProject(prev => {
+      // Check if reset sequence global mapping already exists
+      const hasResetMapping = prev.globalMappings.some(
+        gm => gm.midiValue === '46,47' && gm.midiChannel === 10 && gm.actionType === 'RESET_SEQUENCES'
+      );
+      
+      const newGlobalMappings = hasResetMapping ? prev.globalMappings : [
+        ...prev.globalMappings,
+        {
+          id: uuidv4(),
+          keyboardValue: 'r',
+          midiValue: '46,47',
+          midiChannel: 10, // Drum pad channel
+          actionType: 'RESET_SEQUENCES' as const,
+          actionValue: 0,
+          isEnabled: true
+        }
+      ];
+      
+      return {
+        ...prev,
+        songs: [...prev.songs, ...allSongs],
+        globalMappings: newGlobalMappings
+      };
+    });
+    onSelectSong(allSongs[0].id);
   };
 
   return (
@@ -135,13 +196,53 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
         </button>
       </div>
 
-      <button
-        onClick={importZeitgeist}
-        className="mx-2 mb-4 px-2 py-2 bg-indigo-900/50 hover:bg-indigo-800/50 text-indigo-300 hover:text-indigo-200 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border border-indigo-800/50"
-        title="Import Zeitgeist song from old project"
-      >
-        + Import Zeitgeist
-      </button>
+      <div className="mx-2 mb-4 space-y-1">
+        <button
+          onClick={importAllSongs}
+          className="w-full px-2 py-2 bg-gradient-to-r from-indigo-900/50 to-purple-900/50 hover:from-indigo-800/50 hover:to-purple-800/50 text-indigo-300 hover:text-indigo-200 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border border-indigo-800/50"
+          title="Import all songs from 260222-songs collection"
+        >
+          + Import All Songs
+        </button>
+        
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            onClick={importZeitgeist}
+            className="px-2 py-1.5 bg-indigo-900/30 hover:bg-indigo-800/30 text-indigo-400 hover:text-indigo-300 rounded text-[8px] font-bold uppercase tracking-wider transition-all border border-indigo-800/30"
+            title="Import Zeitgeist song"
+          >
+            Zeitgeist
+          </button>
+          <button
+            onClick={importVolcano}
+            className="px-2 py-1.5 bg-orange-900/30 hover:bg-orange-800/30 text-orange-400 hover:text-orange-300 rounded text-[8px] font-bold uppercase tracking-wider transition-all border border-orange-800/30"
+            title="Import Volcano song"
+          >
+            Volcano
+          </button>
+          <button
+            onClick={importDesertEagle}
+            className="px-2 py-1.5 bg-amber-900/30 hover:bg-amber-800/30 text-amber-400 hover:text-amber-300 rounded text-[8px] font-bold uppercase tracking-wider transition-all border border-amber-800/30"
+            title="Import Desert Eagle song"
+          >
+            Desert Eagle
+          </button>
+          <button
+            onClick={importFMBusiness}
+            className="px-2 py-1.5 bg-cyan-900/30 hover:bg-cyan-800/30 text-cyan-400 hover:text-cyan-300 rounded text-[8px] font-bold uppercase tracking-wider transition-all border border-cyan-800/30"
+            title="Import FM Business song"
+          >
+            FM Business
+          </button>
+          <button
+            onClick={importAgog}
+            className="px-2 py-1.5 bg-green-900/30 hover:bg-green-800/30 text-green-400 hover:text-green-300 rounded text-[8px] font-bold uppercase tracking-wider transition-all border border-green-800/30 col-span-2"
+            title="Import Agog song"
+          >
+            Agog
+          </button>
+        </div>
+      </div>
       
       <div className="flex flex-col gap-1 overflow-y-auto pr-1">
         {songs.map((song, index) => (

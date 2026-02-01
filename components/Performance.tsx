@@ -312,16 +312,16 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
               <span className="text-[9px] text-slate-600">CH 1</span>
             </div>
             
-            {/* Modulation Bar (CC 22) */}
+            {/* Modulation Bar (CC 1) */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[9px] font-bold text-slate-400">Modulation</span>
-                <span className="text-[10px] font-mono text-slate-500">{ccStates['1-22'] ?? 0}</span>
+                <span className="text-[10px] font-mono text-slate-500">{ccStates['1-1'] ?? 0}</span>
               </div>
               <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-75 rounded-full"
-                  style={{ width: `${((ccStates['1-22'] ?? 0) / 127) * 100}%` }}
+                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
+                  style={{ width: `${((ccStates['1-1'] ?? 0) / 127) * 100}%` }}
                 />
               </div>
             </div>
