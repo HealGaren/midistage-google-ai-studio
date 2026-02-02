@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Song, ActiveNoteState, InputMapping, SequenceMode } from '../types';
+import { Song, ActiveNoteState, InputMapping, SequenceMode, CCMapping } from '../types';
 import { midiService } from '../webMidiService';
 
 interface PerformanceProps {
@@ -12,6 +12,7 @@ interface PerformanceProps {
   selectedInputId: string;
   onUpdateSong: (song: Song) => void;
   ccStates: Record<string, number>; // key: "channel-cc", value: 0-127
+  globalCCMappings?: CCMapping[];
 }
 
 const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
@@ -33,7 +34,7 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
   );
 };
 
-const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState }) => {
+const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState, globalCCMappings = [] }) => {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   // Store as "channel-pitch" string to include channel info
   const [pressedMidiNotes, setPressedMidiNotes] = useState<Set<string>>(new Set());
@@ -324,22 +325,42 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
           <div className="bg-slate-900/60 backdrop-blur-sm rounded-3xl border border-slate-800 p-6 shadow-inner">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Controllers</h3>
-              <span className="text-[9px] text-slate-600">CH 1</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span className="text-[8px] text-slate-600">Global</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-cyan-500" />
+                  <span className="text-[8px] text-slate-600">Song</span>
+                </div>
+              </div>
             </div>
             
             {/* Modulation Bar (CC 1) */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-bold text-slate-400">Modulation</span>
-                <span className="text-[10px] font-mono text-slate-500">{ccStates['1-1'] ?? 0}</span>
-              </div>
-              <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
-                  style={{ width: `${((ccStates['1-1'] ?? 0) / 127) * 100}%` }}
-                />
-              </div>
-            </div>
+            {(() => {
+              const isGlobalMapped = globalCCMappings.some(m => m.isEnabled && m.inputCC === 1);
+              const isSongMapped = (song.ccMappings || []).some(m => m.isEnabled && m.inputCC === 1);
+              const isMapped = isGlobalMapped || isSongMapped;
+              return (
+                <div className={`mb-6 ${!isMapped ? 'opacity-30' : ''}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold text-slate-400">Modulation</span>
+                      {isGlobalMapped && <div className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Global" />}
+                      {isSongMapped && <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" title="Song" />}
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-500">{ccStates['1-1'] ?? 0}</span>
+                  </div>
+                  <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${isGlobalMapped ? 'bg-gradient-to-r from-amber-500 to-orange-500' : isSongMapped ? 'bg-gradient-to-r from-cyan-500 to-blue-500' : 'bg-slate-600'}`}
+                      style={{ width: `${((ccStates['1-1'] ?? 0) / 127) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
             
             {/* 8 Knobs (CC 21-28) */}
             <div className="grid grid-cols-4 gap-3">
@@ -347,17 +368,25 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                 const value = ccStates[`1-${cc}`] ?? 0;
                 const percent = (value / 127) * 100;
                 const rotation = -135 + (percent / 100) * 270; // -135 to 135 degrees
+                const isGlobalMapped = globalCCMappings.some(m => m.isEnabled && m.inputCC === cc);
+                const isSongMapped = (song.ccMappings || []).some(m => m.isEnabled && m.inputCC === cc);
+                const isMapped = isGlobalMapped || isSongMapped;
+                const gradientId = isGlobalMapped ? 'knobGradientGlobal' : 'knobGradientSong';
                 return (
-                  <div key={cc} className="flex flex-col items-center gap-1">
+                  <div key={cc} className={`flex flex-col items-center gap-1 ${!isMapped ? 'opacity-30' : ''}`}>
                     <div className="relative w-12 h-12">
-                      {/* Knob background */}
+                      {/* Knob background - arc from bottom-left to bottom-right (270 degrees, matching knob rotation) */}
                       <svg className="w-full h-full" viewBox="0 0 48 48">
                         <circle cx="24" cy="24" r="20" fill="none" stroke="#334155" strokeWidth="4" strokeLinecap="round"
-                          strokeDasharray="110 47" transform="rotate(135 24 24)" />
-                        <circle cx="24" cy="24" r="20" fill="none" stroke="url(#knobGradient)" strokeWidth="4" strokeLinecap="round"
-                          strokeDasharray={`${percent * 1.1} 157`} transform="rotate(135 24 24)" />
+                          strokeDasharray="94.2 31.4" transform="rotate(135 24 24)" />
+                        <circle cx="24" cy="24" r="20" fill="none" stroke={isMapped ? `url(#${gradientId})` : "#475569"} strokeWidth="4" strokeLinecap="round"
+                          strokeDasharray={`${(percent / 100) * 94.2} 125.6`} transform="rotate(135 24 24)" />
                         <defs>
-                          <linearGradient id="knobGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <linearGradient id="knobGradientGlobal" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#f59e0b" />
+                            <stop offset="100%" stopColor="#f97316" />
+                          </linearGradient>
+                          <linearGradient id="knobGradientSong" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" stopColor="#06b6d4" />
                             <stop offset="100%" stopColor="#8b5cf6" />
                           </linearGradient>
@@ -369,11 +398,15 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                           className="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center shadow-lg"
                           style={{ transform: `rotate(${rotation}deg)` }}
                         >
-                          <div className="w-0.5 h-2 bg-cyan-400 rounded-full -translate-y-1" />
+                          <div className={`w-0.5 h-2 rounded-full -translate-y-1 ${isGlobalMapped ? 'bg-amber-400' : isSongMapped ? 'bg-cyan-400' : 'bg-slate-500'}`} />
                         </div>
                       </div>
                     </div>
-                    <span className="text-[8px] font-bold text-slate-500">K{idx + 1}</span>
+                    <div className="flex items-center gap-0.5">
+                      <span className="text-[8px] font-bold text-slate-500">K{idx + 1}</span>
+                      {isGlobalMapped && <div className="w-1 h-1 rounded-full bg-amber-500" />}
+                      {isSongMapped && <div className="w-1 h-1 rounded-full bg-cyan-500" />}
+                    </div>
                     <span className="text-[9px] font-mono text-slate-400">{value}</span>
                   </div>
                 );

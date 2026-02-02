@@ -84,7 +84,7 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
         ...prev.globalMappings,
         {
           id: uuidv4(),
-          keyboardValue: 'r',
+          keyboardValue: 'Backspace',
           midiValue: '46,47',
           midiChannel: 10, // Drum pad channel
           actionType: 'RESET_SEQUENCES' as const,
@@ -146,7 +146,7 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
         ...prev.globalMappings,
         {
           id: uuidv4(),
-          keyboardValue: 'r',
+          keyboardValue: 'Backspace',
           midiValue: '46,47',
           midiChannel: 10, // Drum pad channel
           actionType: 'RESET_SEQUENCES' as const,

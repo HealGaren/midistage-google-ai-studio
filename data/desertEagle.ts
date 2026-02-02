@@ -154,7 +154,7 @@ export function createDesertEagleSong(): Song {
     id: uuidv4(),
     name: 'Sample Intro',
     notes: [
-      { id: uuidv4(), pitch: 48, velocity: 0.8, channel: 6, preDelay: 0, duration: null, durationUnit: 'ms' }
+      { id: uuidv4(), pitch: 48, velocity: 0.8, channel: 11, preDelay: 0, duration: null, durationUnit: 'ms' }
     ]
   };
 
@@ -162,7 +162,7 @@ export function createDesertEagleSong(): Song {
     id: uuidv4(),
     name: 'Sample End',
     notes: [
-      { id: uuidv4(), pitch: 49, velocity: 0.8, channel: 6, preDelay: 0, duration: null, durationUnit: 'ms' }
+      { id: uuidv4(), pitch: 49, velocity: 0.8, channel: 11, preDelay: 0, duration: null, durationUnit: 'ms' }
     ]
   };
 

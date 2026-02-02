@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { ProjectData, GlobalMapping, GlobalActionType } from '../types';
+import { ProjectData, GlobalMapping, GlobalActionType, CCMapping } from '../types';
 import { midiService } from '../webMidiService';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -95,6 +95,68 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
     onUpdateProject(prev => ({
       ...prev,
       globalMappings: prev.globalMappings.map(m => m.id === id ? { ...m, ...updates } : m)
+    }));
+  };
+
+  const addGlobalCCMapping = () => {
+    const newMapping: CCMapping = {
+      id: uuidv4(),
+      name: `CC Mapping ${(project.globalCCMappings || []).length + 1}`,
+      inputChannel: 1,
+      inputCC: 1,
+      outputChannel: 1,
+      outputCC: 1,
+      rangeEnabled: false,
+      rangeMin: 0,
+      rangeMax: 127,
+      curveEnabled: false,
+      curveValue: 0.5,
+      outputRemapEnabled: false,
+      isEnabled: true,
+      scope: 'global'
+    };
+    onUpdateProject(prev => ({ ...prev, globalCCMappings: [...(prev.globalCCMappings || []), newMapping] }));
+  };
+
+  const addStandardGlobalCCs = () => {
+    const standardCCs = [
+      { cc: 1, name: 'Modulation' },
+      { cc: 21, name: 'Knob 1' },
+      { cc: 22, name: 'Knob 2' },
+      { cc: 23, name: 'Knob 3' },
+      { cc: 24, name: 'Knob 4' },
+      { cc: 25, name: 'Knob 5' },
+      { cc: 26, name: 'Knob 6' },
+      { cc: 27, name: 'Knob 7' },
+      { cc: 28, name: 'Knob 8' },
+    ];
+    const newMappings: CCMapping[] = standardCCs.map(({ cc, name }) => ({
+      id: uuidv4(),
+      name,
+      inputChannel: 1,
+      inputCC: cc,
+      outputChannel: 1,
+      outputCC: cc,
+      rangeEnabled: false,
+      rangeMin: 0,
+      rangeMax: 127,
+      curveEnabled: false,
+      curveValue: 0.5,
+      outputRemapEnabled: false,
+      isEnabled: true,
+      scope: 'global'
+    }));
+    onUpdateProject(prev => ({ ...prev, globalCCMappings: [...(prev.globalCCMappings || []), ...newMappings] }));
+  };
+
+  const removeGlobalCCMapping = (id: string) => {
+    onUpdateProject(prev => ({ ...prev, globalCCMappings: (prev.globalCCMappings || []).filter(m => m.id !== id) }));
+  };
+
+  const updateGlobalCCMapping = (id: string, updates: Partial<CCMapping>) => {
+    onUpdateProject(prev => ({
+      ...prev,
+      globalCCMappings: (prev.globalCCMappings || []).map(m => m.id === id ? { ...m, ...updates } : m)
     }));
   };
 
@@ -275,6 +337,71 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
           {(!project.globalMappings || project.globalMappings.length === 0) && (
             <div className="p-10 border-2 border-dashed border-slate-800 rounded-[40px] flex flex-col items-center justify-center text-slate-600 opacity-50">
               <p className="text-sm font-bold uppercase tracking-[0.3em]">No Global Mappings Configured</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Global CC Mappings Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h3 className="text-xl font-black text-white">Global CC Mappings</h3>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">CC pass-through that applies to all songs</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={addStandardGlobalCCs} className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all">+ Std 9 CCs</button>
+            <button onClick={addGlobalCCMapping} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg">+ New CC</button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          {(project.globalCCMappings || []).map(mapping => (
+            <div key={mapping.id} className={`grid grid-cols-[50px_1fr_1fr_1fr_50px] gap-4 bg-slate-900/40 border border-slate-800 p-4 rounded-2xl items-center transition-all ${!mapping.isEnabled && 'opacity-40 grayscale'}`}>
+              <div className="flex flex-col items-center gap-1">
+                <label className="text-[8px] text-slate-600 font-black uppercase">On</label>
+                <input type="checkbox" checked={mapping.isEnabled} onChange={(e) => updateGlobalCCMapping(mapping.id, { isEnabled: e.target.checked })} className="w-5 h-5 accent-indigo-500 cursor-pointer" />
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                <span className="text-[8px] text-slate-600 font-black uppercase">Name</span>
+                <input 
+                  type="text" 
+                  value={mapping.name} 
+                  onChange={(e) => updateGlobalCCMapping(mapping.id, { name: e.target.value })} 
+                  className="bg-slate-800 p-2 rounded-lg text-[10px] font-bold border border-slate-700 outline-none text-slate-200" 
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[8px] text-slate-600 font-black uppercase">Input (CH / CC)</span>
+                <div className="flex gap-2">
+                  <select value={mapping.inputChannel} onChange={(e) => updateGlobalCCMapping(mapping.id, { inputChannel: parseInt(e.target.value) })} className="bg-slate-800 p-2 rounded-lg text-[10px] font-bold border border-slate-700 outline-none text-slate-200 flex-1">
+                    <option value={0}>Omni</option>
+                    {Array.from({length: 16}).map((_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}
+                  </select>
+                  <input type="number" min="0" max="127" value={mapping.inputCC} onChange={(e) => updateGlobalCCMapping(mapping.id, { inputCC: parseInt(e.target.value) || 0 })} className="bg-slate-800 p-2 rounded-lg text-[10px] font-bold border border-slate-700 outline-none text-slate-200 w-16" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[8px] text-slate-600 font-black uppercase">Output (CH / CC)</span>
+                <div className="flex gap-2">
+                  <select value={mapping.outputChannel} onChange={(e) => updateGlobalCCMapping(mapping.id, { outputChannel: parseInt(e.target.value) })} className="bg-slate-800 p-2 rounded-lg text-[10px] font-bold border border-slate-700 outline-none text-slate-200 flex-1">
+                    {Array.from({length: 16}).map((_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}
+                  </select>
+                  <input type="number" min="0" max="127" value={mapping.outputCC} onChange={(e) => updateGlobalCCMapping(mapping.id, { outputCC: parseInt(e.target.value) || 0 })} className="bg-slate-800 p-2 rounded-lg text-[10px] font-bold border border-slate-700 outline-none text-slate-200 w-16" />
+                </div>
+              </div>
+
+              <button onClick={() => removeGlobalCCMapping(mapping.id)} className="p-2 text-slate-700 hover:text-rose-500 transition-colors self-center">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+            </div>
+          ))}
+          {(!project.globalCCMappings || project.globalCCMappings.length === 0) && (
+            <div className="p-8 border-2 border-dashed border-slate-800 rounded-3xl flex flex-col items-center justify-center text-slate-600 opacity-50">
+              <p className="text-sm font-bold uppercase tracking-[0.3em]">No Global CC Mappings</p>
             </div>
           )}
         </div>

@@ -296,7 +296,7 @@ const App: React.FC = () => {
         <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />
         <main className="flex-1 relative overflow-auto p-8 bg-slate-950 custom-scrollbar">
           {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={handleUpdateSong} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
-          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} />}
+          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} globalCCMappings={project.globalCCMappings} />}
           {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} />}
         </main>
       </div>
