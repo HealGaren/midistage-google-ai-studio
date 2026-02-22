@@ -42,6 +42,21 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
     if (currentSongId === id) onSelectSong(songs[0].id === id ? songs[1].id : songs[0].id);
   };
 
+  const moveSong = (id: string, direction: 'up' | 'down', e: React.MouseEvent) => {
+    e.stopPropagation();
+    const index = songs.findIndex(s => s.id === id);
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === songs.length - 1) return;
+    
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    onUpdateProject(prev => {
+      const newSongs = [...prev.songs];
+      [newSongs[index], newSongs[newIndex]] = [newSongs[newIndex], newSongs[index]];
+      return { ...prev, songs: newSongs };
+    });
+  };
+
   const exportCurrentSong = (e: React.MouseEvent) => {
     e.stopPropagation();
     const currentSong = songs.find(s => s.id === currentSongId);
@@ -259,12 +274,31 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
               <span className={`text-[10px] font-black ${currentSongId === song.id ? 'text-indigo-200' : 'text-slate-600'}`}>{String(index + 1).padStart(2, '0')}</span>
               <span className="text-sm font-semibold truncate">{song.name}</span>
             </div>
-            <button 
-              onClick={(e) => removeSong(song.id, e)}
-              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-700 rounded transition-all"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+              <button 
+                onClick={(e) => moveSong(song.id, 'up', e)}
+                className={`p-1 rounded transition-all ${index === 0 ? 'text-slate-700 cursor-not-allowed' : 'hover:bg-slate-700 text-slate-400 hover:text-white'}`}
+                disabled={index === 0}
+                title="Move up"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" /></svg>
+              </button>
+              <button 
+                onClick={(e) => moveSong(song.id, 'down', e)}
+                className={`p-1 rounded transition-all ${index === songs.length - 1 ? 'text-slate-700 cursor-not-allowed' : 'hover:bg-slate-700 text-slate-400 hover:text-white'}`}
+                disabled={index === songs.length - 1}
+                title="Move down"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              <button 
+                onClick={(e) => removeSong(song.id, e)}
+                className="p-1 hover:bg-slate-700 hover:text-rose-400 rounded transition-all"
+                title="Remove song"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
           </div>
         ))}
       </div>
