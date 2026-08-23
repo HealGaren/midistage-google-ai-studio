@@ -21,7 +21,7 @@ MidiStage is a browser-based live MIDI performance engine. It listens to a MIDI 
 ## Architecture
 
 ### State model (single source of truth)
-All application state lives in one `ProjectData` object held in `App.tsx` via `useState`. Songs/projects are brought in at runtime through import buttons in `Navigation.tsx` or the Saved Projects list in Settings (below). Saving is explicit — nothing is auto-saved. The only things in `localStorage` are the *name* of the last folder-loaded project (`midistage.lastProjectFile`, used to auto-restore it from the dev API on startup — see Game mode notes) and the Live-tab view toggle (`midistage.liveView`). Without a dev server, reloading resets to `DEFAULT_PROJECT`.
+All application state lives in one `ProjectData` object held in `App.tsx` via `useState`. Songs/projects are brought in at runtime through import buttons in `Navigation.tsx` or the Saved Projects list in Settings (below). Saving is explicit — nothing is auto-saved. The only things in `localStorage` are the *name* of the last folder-loaded project (`midistage.lastProjectFile`, used to auto-restore it from the dev API on startup — see Game mode notes) and browser-local UI preferences (`midistage.prefs` via `utils/prefs.ts` — Live-tab view/legend/LED/panel toggles, edited in Settings → Interface). Game-tab display toggles live in `chart.settings` (per song, saved with the project). Without a dev server, reloading resets to `DEFAULT_PROJECT`.
 
 ### Local project persistence (dev-server only)
 `vite.config.ts` registers a `localProjectsApi` plugin exposing `GET/PUT/DELETE /api/projects[/<file>]` backed by the gitignored `projects/` folder. The frontend client is `utils/projectStorage.ts`, and the **Saved Projects** section in `Settings.tsx` lets the user list/load/save/delete whole `ProjectData` files there without browser download/upload dialogs. This only works under `pnpm dev`/`pnpm preview` (the middleware doesn't exist in a static production build); the UI falls back to a "use Import/Export" message when `/api/projects` is unreachable. Filenames are restricted to plain `<name>.json` basenames server-side to block path traversal.
@@ -59,7 +59,7 @@ This is the heart of the app and the most complex file. It owns all note schedul
 A singleton wrapper around the `webmidi` library's global `WebMidi`. Provides `init()`, device lists, and `getInputById`/`getOutputById`. Imported directly wherever MIDI I/O is needed.
 
 ### UI surface
-Four top-level tabs in `App.tsx`: **Live** (`Performance.tsx`), **Game** (`GameMode.tsx`, see below), **Editor** (`Editor.tsx` + `components/editor/*` sub-editors for presets, sequences, scenes, mappings, CC, and the Game **Chart**), and **Settings** (device selection, global mappings). `Navigation.tsx` is the song list / import-export sidebar.
+Four top-level tabs in `App.tsx`: **Live** (`Performance.tsx`), **Game** (`GameMode.tsx`, see below), **Editor** (`Editor.tsx` + `components/editor/*` sub-editors for presets, sequences, scenes, mappings, CC, and the Game **Chart**), and **Settings** (device selection, global mappings). `Navigation.tsx` is the song list / import-export sidebar. The header's **⛶ Focus** button hides the sidebar and requests browser fullscreen for stage use (leaving fullscreen ends focus mode).
 
 ### Game mode (rhythm-game style live guide)
 A fourth top-level tab, **Game** (`components/GameMode.tsx`), shows the song as falling notes so the performer doesn't have to memorize it. It is *not* a fixed-tempo rhythm game — the performer is the clock.

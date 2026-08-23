@@ -224,7 +224,7 @@ export function drawHighway(f: HighwayFrame) {
     ctx.strokeStyle = isBar ? 'rgba(226,232,240,0.35)' : 'rgba(148,163,184,0.12)';
     ctx.lineWidth = isBar ? 1.5 : 1;
     ctx.beginPath(); ctx.moveTo(g.hwX, y); ctx.lineTo(g.hwX + g.hwW, y); ctx.stroke();
-    if (isBar) {
+    if (isBar && settings.showBarNumbers) {
       ctx.fillStyle = 'rgba(226,232,240,0.7)';
       ctx.font = '900 12px ui-sans-serif, system-ui';
       ctx.textAlign = 'right';
@@ -237,6 +237,7 @@ export function drawHighway(f: HighwayFrame) {
     const c = sectionColor(s.section, s.index);
     ctx.strokeStyle = c; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.moveTo(g.hwX, y); ctx.lineTo(g.hwX + g.hwW, y); ctx.stroke();
+    if (!settings.showSectionLabels) return;
     ctx.fillStyle = c;
     ctx.font = '900 12px ui-sans-serif, system-ui';
     ctx.textAlign = 'left';
@@ -257,7 +258,7 @@ export function drawHighway(f: HighwayFrame) {
   }
 
   // ── 가사 마커(왼쪽 거터) ──
-  const lyrics = song.chart?.lyrics || [];
+  const lyrics = settings.showLyricMarkers ? (song.chart?.lyrics || []) : [];
   ctx.textAlign = 'right';
   for (const l of lyrics) {
     if (l.beat < bottomBeat || l.beat > topBeat) continue;
@@ -271,7 +272,7 @@ export function drawHighway(f: HighwayFrame) {
   }
 
   // ── 다음 노트 레인 강조 ──
-  nextLanes.forEach(id => {
+  if (settings.flashNextLane) nextLanes.forEach(id => {
     const l = laneById.get(id); if (!l) return;
     const grad = ctx.createLinearGradient(0, g.hitY - 160, 0, g.hitY);
     grad.addColorStop(0, hexA(l.color, 0));
@@ -357,7 +358,7 @@ export function drawHighway(f: HighwayFrame) {
   // ── 히트/미스 이펙트 ──
   for (const x of f.fx) {
     const age = now - x.time;
-    if (age > 650) continue;
+    if (age > 650 || !settings.showHitFx) continue;
     const l = laneById.get(x.mappingId); if (!l) continue;
     const cx = l.x + l.w / 2;
     if (x.kind === 'hit') {
@@ -419,13 +420,14 @@ export function drawHighway(f: HighwayFrame) {
   const pressedKeysMidi = new Set<number>(), pressedPads = new Set<number>();
   f.pressedMidiNotes.forEach(k => { const i = k.indexOf('-'); const ch = +k.slice(0, i), p = +k.slice(i + 1); (ch === LK_PAD_CHANNEL ? pressedPads : pressedKeysMidi).add(p); });
   const laneKeyPressed = (l: LaneBox) => l.keyTokens.some(k => f.pressedKeys.has(k));
+  if (!settings.flashNextLane) nextLanes.clear();
   const blink = 0.55 + 0.45 * Math.abs(Math.sin(now / 160));
 
   if (settings.layout === 'device') {
     for (const k of g.whiteKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);
       drawCap(ctx, { x: k.x + 1, y: k.y + 2, w: k.w - 2, h: k.h - 4 }, l, pressedKeysMidi.has(k.midi) || (!!l && laneKeyPressed(l)), !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: l ? 'tint' : '#e5e7eb', idleStroke: 'rgba(0,0,0,0)', radius: 4, label: l?.keyTokens[0]?.toUpperCase() || '', sub: noteName(k.midi) });
+        { idleFill: l ? 'tint' : '#e5e7eb', idleStroke: 'rgba(0,0,0,0)', radius: 4, label: l?.keyTokens[0]?.toUpperCase() || '', sub: settings.showKeyNames ? noteName(k.midi) : undefined });
     }
     for (const k of g.blackKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);

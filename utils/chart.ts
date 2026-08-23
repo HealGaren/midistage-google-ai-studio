@@ -16,6 +16,12 @@ export const DEFAULT_CHART_SETTINGS: ChartSettings = {
   layout: 'device',
   showInnerNotes: true,
   driveSequenceSteps: true,
+  showHitFx: true,
+  showLyricMarkers: true,
+  showBarNumbers: true,
+  showSectionLabels: true,
+  flashNextLane: true,
+  showKeyNames: true,
 };
 
 export function chartSettings(song: Song): ChartSettings {

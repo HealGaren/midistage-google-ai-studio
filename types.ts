@@ -194,6 +194,13 @@ export interface ChartSettings {
   showInnerNotes: boolean;
   /** 차트가 시퀀스의 스텝 인덱스를 맞춘다(놓침/점프 후 복구). 끄면 엔진이 자기 순서대로만 진행 */
   driveSequenceSteps: boolean;
+  // ── 표시 요소 온오프 ──
+  showHitFx: boolean;        // 누를 때 레인 빛기둥/링
+  showLyricMarkers: boolean; // 왼쪽 거터의 가사 마커
+  showBarNumbers: boolean;   // 마디 번호
+  showSectionLabels: boolean;// 오른쪽 거터의 섹션 이름
+  flashNextLane: boolean;    // 다음에 누를 레인/키 강조
+  showKeyNames: boolean;     // 하단 건반의 음이름(C3…)
 }
 
 /** 녹화한 연주 한 테이크. t 는 녹화 시작 기준 ms. */

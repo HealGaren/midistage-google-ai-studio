@@ -10,6 +10,7 @@ import { useTakeRecorder } from './hooks/useTakeRecorder';
 import { buildChartEvents, chartSettings, activeMappingsFor, beatMs as beatMsOf } from './utils/chart';
 import { isInputCaptured, isTypingTarget, normalizeKey } from './utils/inputCapture';
 import { getLastProjectName, loadSavedProject, audioUrl } from './utils/projectStorage';
+import { usePrefs } from './utils/prefs';
 import Navigation from './components/Navigation';
 import Editor from './components/Editor';
 import Performance from './components/Performance';
@@ -93,6 +94,22 @@ const App: React.FC = () => {
   const [project, setProject] = useState<ProjectData>(DEFAULT_PROJECT);
   const [currentSongId, setCurrentSongId] = useState<string>(DEFAULT_PROJECT.songs[0].id);
   const [activeTab, setActiveTab] = useState<'editor' | 'performance' | 'game' | 'settings'>('performance');
+  const [prefs, updatePrefs] = usePrefs();
+  // 포커스 모드: 무대용. 사이드바를 숨기고 브라우저 전체화면. (브라우저 전체화면을 빠져나오면 같이 풀린다)
+  const [focus, setFocus] = useState(false);
+  const toggleFocus = useCallback(() => {
+    setFocus(f => {
+      const next = !f;
+      if (next) document.documentElement.requestFullscreen?.().catch(() => {});
+      else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+      return next;
+    });
+  }, []);
+  useEffect(() => {
+    const onChange = () => { if (!document.fullscreenElement) setFocus(false); };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
   const [isMidiReady, setIsMidiReady] = useState(false);
   const [showMidiMonitor, setShowMidiMonitor] = useState(false);
   const [midiLogs, setMidiLogs] = useState<MidiLogEntry[]>([]);
@@ -365,10 +382,10 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-950 text-slate-100 font-sans">
-      <header className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800 shadow-xl z-20">
+      <header className={`flex items-center justify-between bg-slate-900 border-b border-slate-800 shadow-xl z-20 ${focus ? 'px-4 py-1.5' : 'px-6 py-4'}`}>
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-xl shadow-[0_0_20px_rgba(79,70,229,0.5)]">M</div>
-          <div><h1 className="text-lg font-bold tracking-tight">MidiStage</h1><p className="text-xs text-slate-400 font-medium">{project.name}</p></div>
+          <div><h1 className="text-lg font-bold tracking-tight">MidiStage</h1><p className="text-xs text-slate-400 font-medium">{focus ? `${project.name} · ${currentSong.name}` : project.name}</p></div>
         </div>
         <div className="flex gap-2">
           {(['performance', 'game', 'editor', 'settings'] as const).map(tab => (
@@ -377,6 +394,7 @@ const App: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => setShowMidiMonitor(true)} className="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95">MIDI Test</button>
+          <button onClick={toggleFocus} title="포커스 모드: 사이드바 숨김 + 전체화면 (무대용)" className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95 ${focus ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 hover:bg-slate-600 text-white'}`}>{focus ? '⛶ Exit' : '⛶ Focus'}</button>
           <button onClick={stopAllNotes} className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95">Panic</button>
         </div>
       </header>
@@ -422,14 +440,14 @@ const App: React.FC = () => {
         </div>
       )}
       <div className="flex flex-1 overflow-hidden">
-        <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />
+        {!focus && <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />}
         <main className="flex-1 relative overflow-auto p-8 bg-slate-950 custom-scrollbar">
           {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={handleUpdateSong} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
-          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} globalCCMappings={project.globalCCMappings} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} dawBpm={dawBpm} dawBeat={dawBeat} expectedMappingIds={expectedMappingIds} />}
+          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} globalCCMappings={project.globalCCMappings} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} dawBpm={dawBpm} dawBeat={dawBeat} expectedMappingIds={expectedMappingIds} prefs={prefs} onUpdatePrefs={updatePrefs} />}
           {activeTab === 'game' && <GameMode song={currentSong} conductor={conductor} snapshot={chartSnapshot} settings={chartSetting} events={chartEvents} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} onUpdateSong={handleUpdateSong} recorder={recorder} onReplayTake={handleReplayTake} activeMappings={activeMappings} audioRef={audioRef} audioSrc={audioSrc} audioFile={audioFile} onPickLocalAudio={f => setLocalAudioUrl(URL.createObjectURL(f))} />}
           {/* 연습 음원. Game 탭 밖에서도 재생이 이어지도록 여기 둔다 */}
           <audio ref={audioRef} src={audioSrc} preload="auto" onSeeked={handleAudioSeeked} className="hidden" />
-          {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} />}
+          {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} prefs={prefs} onUpdatePrefs={updatePrefs} />}
         </main>
       </div>
     </div>

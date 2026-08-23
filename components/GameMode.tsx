@@ -237,6 +237,10 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
           <label className="flex items-center gap-2"><input type="checkbox" checked={settings.holdForNotes} onChange={e => updateSettings({ holdForNotes: e.target.checked })} /> 노트에서 기다림</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={settings.showInnerNotes} onChange={e => updateSettings({ showInnerNotes: e.target.checked })} /> 자동 연주 음 표시</label>
           <label className="flex items-center gap-2" title="켜면 노트를 놓치거나 점프한 뒤에도 다음 탭에서 차트가 가리키는 스텝(음)이 난다"><input type="checkbox" checked={settings.driveSequenceSteps} onChange={e => updateSettings({ driveSequenceSteps: e.target.checked })} /> 차트가 시퀀스 스텝 맞춤</label>
+          <span className="w-px h-5 bg-slate-700" />
+          {([['showHitFx', '히트 이펙트'], ['flashNextLane', '다음 키 강조'], ['showLyricMarkers', '가사 마커'], ['showBarNumbers', '마디 번호'], ['showSectionLabels', '섹션 이름'], ['showKeyNames', '건반 음이름']] as const).map(([k, label]) => (
+            <label key={k} className="flex items-center gap-2"><input type="checkbox" checked={settings[k]} onChange={e => updateSettings({ [k]: e.target.checked } as Partial<ChartSettings>)} /> {label}</label>
+          ))}
           <label className="flex items-center gap-2">Early window
             <input type="number" step={0.25} min={0.25} max={4} value={settings.earlyWindowBeats} onChange={e => updateSettings({ earlyWindowBeats: Math.max(0.25, parseFloat(e.target.value) || 1) })} className="w-14 bg-slate-800 rounded-lg px-2 py-1 outline-none text-center" /> beats</label>
           <label className="flex items-center gap-2">Late window

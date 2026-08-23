@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Song, ActiveNoteState, InputMapping, SequenceMode, CCMapping } from '../types';
 import { LaunchkeyView } from './LaunchkeyView';
 import { activeMappingsFor } from '../utils/chart';
+import { UiPrefs } from '../utils/prefs';
 
 interface PerformanceProps {
   song: Song;
@@ -23,6 +24,8 @@ interface PerformanceProps {
   dawBeat?: number;
   // Game 차트가 진행 중일 때 "다음에 누를" 매핑들 — 기기 그림에서 깜빡인다
   expectedMappingIds?: Set<string>;
+  prefs: UiPrefs;
+  onUpdatePrefs: (p: Partial<UiPrefs>) => void;
 }
 
 /**
@@ -125,7 +128,7 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
   );
 };
 
-const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState, globalCCMappings = [], pressedKeys, pressedMidiNotes, dawBpm, dawBeat, expectedMappingIds }) => {
+const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState, globalCCMappings = [], pressedKeys, pressedMidiNotes, dawBpm, dawBeat, expectedMappingIds, prefs, onUpdatePrefs }) => {
   // 박자표. 없으면 4/4 로 본다.
   const beatsPerBar = song.beatsPerBar || 4;
   const beatUnit = song.beatUnit || 4;
@@ -134,8 +137,8 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
   const [songOffset, setSongOffset] = useState(0);
   const [dawOffset, setDawOffset] = useState(0);
   // 트리거 표시: 버튼 격자 vs Launchkey 기기 모양(어느 키/패드에 뭐가 걸려 있고 뭐가 눌렸는지)
-  const [view, setView] = useState<'device' | 'grid'>(() => (localStorage.getItem('midistage.liveView') as 'device' | 'grid') || 'device');
-  useEffect(() => { localStorage.setItem('midistage.liveView', view); }, [view]);
+  const view = prefs.liveView;
+  const setView = (v: 'device' | 'grid') => onUpdatePrefs({ liveView: v });
 
   // 키보드/MIDI 입력 처리는 App 레벨의 useLiveTriggers 로 옮겼다.
   // 어느 탭에 있든 연주가 끊기지 않게 하기 위해서다. 여기서는 표시만 한다.
@@ -283,7 +286,7 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                 {dawBpm != null ? `DAW Clock: ${dawBpm.toFixed(1)} BPM` : 'DAW Clock: —'}
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            {prefs.showBeatLeds && <div className="mt-2 flex flex-wrap items-center gap-2">
               <BeatLeds
                 label="Song"
                 beats={beatsPerBar}
@@ -302,7 +305,7 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                 hint={dawBpm != null ? 'Studio One MIDI 클럭에 위상까지 동기됨' : 'DAW 클럭 없음'}
                 onResetDownbeat={() => setDawOffset(dawBeat ?? 0)}
               />
-            </div>
+            </div>}
           </div>
           <div className="flex flex-col items-end gap-3">
             <div className="flex items-center gap-6">
@@ -352,6 +355,8 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                 pressedMidiNotes={pressedMidiNotes}
                 ccStates={ccStates}
                 expectedMappingIds={expectedMappingIds}
+                showLegend={prefs.liveShowLegend}
+                showNoteNames={prefs.liveShowNoteNames}
                 onTrigger={(m, release) => onTrigger(m.id, m.actionType, m.actionTargetId, release, 'mouse')}
               />
             </section>
@@ -395,7 +400,7 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
 
         <div className="lg:col-span-4 space-y-6">
           {/* CC Controllers Section */}
-          <div className="bg-slate-900/60 backdrop-blur-sm rounded-3xl border border-slate-800 p-6 shadow-inner">
+          {prefs.showControllers && <div className="bg-slate-900/60 backdrop-blur-sm rounded-3xl border border-slate-800 p-6 shadow-inner">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Controllers</h3>
               <div className="flex items-center gap-3">
@@ -485,10 +490,10 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                 );
               })}
             </div>
-          </div>
+          </div>}
 
           {/* Live Monitor */}
-          <div className="flex items-center justify-between">
+          {prefs.showLiveMonitor && <><div className="flex items-center justify-between">
             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Live Monitor</h3>
             <div className="flex gap-1">
                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -522,7 +527,7 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                 ))}
               </div>
             )}
-          </div>
+          </div></>}
         </div>
       </div>
     </div>

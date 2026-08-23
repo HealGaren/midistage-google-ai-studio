@@ -5,10 +5,13 @@ import { midiService } from '../webMidiService';
 import { v4 as uuidv4 } from 'uuid';
 import { listSavedProjects, loadSavedProject, saveProjectToFolder, deleteSavedProject, toFileName, SavedProjectMeta, rememberLastProject, forgetLastProject } from '../utils/projectStorage';
 import { useInputCapture, normalizeKey } from '../utils/inputCapture';
+import { UiPrefs } from '../utils/prefs';
 
 interface SettingsProps {
   project: ProjectData;
   onUpdateProject: (updater: (prev: ProjectData) => ProjectData) => void;
+  prefs: UiPrefs;
+  onUpdatePrefs: (p: Partial<UiPrefs>) => void;
 }
 
 interface LearningState {
@@ -16,7 +19,7 @@ interface LearningState {
   type: 'keyboard' | 'midi';
 }
 
-const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
+const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject, prefs, onUpdatePrefs }) => {
   const [isRescanning, setIsRescanning] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [learning, setLearning] = useState<LearningState | null>(null);
@@ -263,6 +266,21 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
           <input type="file" ref={fileInputRef} onChange={loadProjectFromFile} accept=".json" className="hidden" />
           <button onClick={() => fileInputRef.current?.click()} className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-slate-700">Import JSON</button>
           <button onClick={saveProjectToFile} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg">Export JSON</button>
+        </div>
+      </div>
+
+      {/* Interface — 이 브라우저에만 저장되는 표시 취향 */}
+      <div className="space-y-4">
+        <div className="border-b border-slate-800 pb-4">
+          <h3 className="text-xl font-black text-white">Interface</h3>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Live 탭 표시 요소 · 이 브라우저에 저장 (Game 탭 표시는 Game ⚙ 에서 곡별로)</p>
+        </div>
+        <div className="flex flex-wrap gap-3 text-[11px] font-bold text-slate-300">
+          {([['liveShowLegend', 'Launchkey 뷰 아래 매핑 목록'], ['liveShowNoteNames', '건반 음이름'], ['showBeatLeds', '박 LED (Song/DAW)'], ['showControllers', '노브·모듈레이션 패널'], ['showLiveMonitor', 'Live Monitor (울리는 노트)']] as const).map(([k, label]) => (
+            <label key={k} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border cursor-pointer ${prefs[k] ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-slate-900 border-slate-800'}`}>
+              <input type="checkbox" checked={prefs[k]} onChange={e => onUpdatePrefs({ [k]: e.target.checked } as Partial<UiPrefs>)} /> {label}
+            </label>
+          ))}
         </div>
       </div>
 

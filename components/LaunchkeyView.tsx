@@ -20,6 +20,7 @@ interface Props {
   onTrigger?: (m: InputMapping, isRelease: boolean) => void;
   className?: string;
   showLegend?: boolean;
+  showNoteNames?: boolean;
 }
 
 interface Placement { keys: Map<number, InputMapping[]>; pads: Map<number, InputMapping[]>; unplaced: InputMapping[]; }
@@ -38,7 +39,7 @@ export function placeMappings(song: Song): Placement {
   return { keys, pads, unplaced };
 }
 
-export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiNotes, ccStates, expectedMappingIds, onTrigger, className, showLegend = true }) => {
+export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiNotes, ccStates, expectedMappingIds, onTrigger, className, showLegend = true, showNoteNames = true }) => {
   const W = 1000;
   const layout = useMemo(() => deviceLayout(W), []);
   const placement = useMemo(() => placeMappings(song), [song]);
@@ -141,7 +142,7 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
                 fill={pressed ? (color || '#a5b4fc') : color ? `${color}55` : '#e5e7eb'}
                 stroke={expected ? '#f59e0b' : '#0f172a'} strokeWidth={expected ? 3 : 1}
                 style={expected ? { animation: 'lkPulse 0.6s ease-in-out infinite' } : undefined} />
-              <text x={k.x + k.w / 2} y={k.y + k.h - 8} textAnchor="middle" fill="#334155" fontSize={9} fontWeight={800}>{noteName(k.midi)}</text>
+              {showNoteNames && <text x={k.x + k.w / 2} y={k.y + k.h - 8} textAnchor="middle" fill="#334155" fontSize={9} fontWeight={800}>{noteName(k.midi)}</text>}
               {ms && ms.length > 0 && (
                 <text x={k.x + k.w / 2} y={k.y + k.h - 24} textAnchor="middle" fill="#0f172a" fontSize={12} fontWeight={900}>{keyLabel(ms[0]).split(' ')[0]}</text>
               )}
