@@ -3,6 +3,8 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ProjectData, GlobalMapping, GlobalActionType, CCMapping } from '../types';
 import { midiService } from '../webMidiService';
 import { v4 as uuidv4 } from 'uuid';
+import { listSavedProjects, loadSavedProject, saveProjectToFolder, deleteSavedProject, toFileName, SavedProjectMeta } from '../utils/projectStorage';
+import { useInputCapture } from '../utils/inputCapture';
 
 interface SettingsProps {
   project: ProjectData;
@@ -18,7 +20,63 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
   const [isRescanning, setIsRescanning] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [learning, setLearning] = useState<LearningState | null>(null);
-  
+
+  // 러닝 중에는 그 입력이 여기로 와야 하므로 라이브 트리거를 잠시 멈춘다
+  useInputCapture(learning !== null);
+
+  // Local "Saved Projects" folder (served by the dev server, see vite.config.ts)
+  const [savedProjects, setSavedProjects] = useState<SavedProjectMeta[]>([]);
+  const [storageAvailable, setStorageAvailable] = useState(true);
+  const [saveName, setSaveName] = useState(project.name);
+  const [storageStatus, setStorageStatus] = useState<string | null>(null);
+
+  const refreshSavedProjects = useCallback(async () => {
+    try {
+      setSavedProjects(await listSavedProjects());
+      setStorageAvailable(true);
+    } catch {
+      setStorageAvailable(false);
+    }
+  }, []);
+
+  useEffect(() => { refreshSavedProjects(); }, [refreshSavedProjects]);
+
+  const handleSaveToFolder = useCallback(async () => {
+    const fileName = toFileName(saveName);
+    if (savedProjects.some(p => p.name === fileName) &&
+        !window.confirm(`"${fileName}" already exists. Overwrite it?`)) return;
+    try {
+      await saveProjectToFolder(saveName, project);
+      setStorageStatus(`Saved to projects/${fileName}`);
+      await refreshSavedProjects();
+    } catch (err: any) {
+      setStorageStatus(`Save failed: ${err.message}`);
+    }
+  }, [saveName, project, savedProjects, refreshSavedProjects]);
+
+  const handleLoadFromFolder = useCallback(async (name: string) => {
+    try {
+      const loaded = await loadSavedProject(name);
+      if (!Array.isArray(loaded.songs)) { setStorageStatus('Invalid project file.'); return; }
+      onUpdateProject(() => loaded);
+      setSaveName(name.replace(/\.json$/i, ''));
+      setStorageStatus(`Loaded ${name}`);
+    } catch (err: any) {
+      setStorageStatus(`Load failed: ${err.message}`);
+    }
+  }, [onUpdateProject]);
+
+  const handleDeleteFromFolder = useCallback(async (name: string) => {
+    if (!window.confirm(`Delete "${name}" from the projects folder?`)) return;
+    try {
+      await deleteSavedProject(name);
+      setStorageStatus(`Deleted ${name}`);
+      await refreshSavedProjects();
+    } catch (err: any) {
+      setStorageStatus(`Delete failed: ${err.message}`);
+    }
+  }, [refreshSavedProjects]);
+
   const inputs = midiService.getInputs();
   const outputs = midiService.getOutputs();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -205,6 +263,58 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
         </div>
       </div>
 
+      {/* Saved Projects (local ./projects folder, dev server only) */}
+      <div className="space-y-5">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h3 className="text-xl font-black text-white">Saved Projects</h3>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Load &amp; save directly to the local <span className="text-slate-400">projects/</span> folder</p>
+          </div>
+          <button onClick={refreshSavedProjects} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-700 transition-all">Refresh</button>
+        </div>
+
+        {!storageAvailable ? (
+          <div className="p-8 border-2 border-dashed border-slate-800 rounded-3xl text-center text-slate-500 text-xs font-bold leading-relaxed">
+            Local project folder is only available when running the dev server (<span className="text-slate-300">pnpm dev</span>).<br />Use Import / Export JSON above instead.
+          </div>
+        ) : (
+          <>
+            <div className="flex items-end gap-3">
+              <div className="flex-1 space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Save current project as</label>
+                <input
+                  type="text"
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  placeholder="My Performance Set"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all"
+                />
+              </div>
+              <button onClick={handleSaveToFolder} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg whitespace-nowrap">Save to Folder</button>
+            </div>
+
+            {storageStatus && <p className="text-xs font-bold text-indigo-400">{storageStatus}</p>}
+
+            <div className="grid grid-cols-1 gap-2">
+              {savedProjects.length === 0 ? (
+                <div className="p-8 border-2 border-dashed border-slate-800 rounded-3xl text-center text-slate-600 text-xs font-bold uppercase tracking-[0.3em] opacity-60">No saved projects yet</div>
+              ) : savedProjects.map(p => (
+                <div key={p.name} className="flex items-center gap-4 bg-slate-900/40 border border-slate-800 px-5 py-3.5 rounded-2xl">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-200 truncate">{p.name}</p>
+                    <p className="text-[10px] text-slate-500 font-medium">{(p.size / 1024).toFixed(1)} KB · {new Date(p.mtime).toLocaleString()}</p>
+                  </div>
+                  <button onClick={() => handleLoadFromFolder(p.name)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">Load</button>
+                  <button onClick={() => handleDeleteFromFolder(p.name)} className="p-2 text-slate-600 hover:text-rose-500 transition-colors" title="Delete">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="space-y-6">
         <div className="flex items-center justify-between">
             <div className="space-y-2 flex-1 mr-6">
@@ -233,6 +343,19 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
               <option value="">{outputs.length === 0 ? 'Searching for outputs...' : 'No Output Selected'}</option>
               {outputs.map(output => <option key={output.id} value={output.id}>{output.name}</option>)}
             </select>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">DAW Clock Input (Tempo Display)</label>
+            <select value={project.selectedClockInputId || ''} onChange={(e) => onUpdateProject(prev => ({ ...prev, selectedClockInputId: e.target.value }))} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all appearance-none">
+              <option value="">Not Used</option>
+              {inputs.map(input => <option key={input.id} value={input.id}>{input.name}</option>)}
+            </select>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              DAW 가 보내는 MIDI 클럭에서 현재 템포를 읽어 Live 탭에 표시한다. 보통 DAW 로 나가는 것과 같은 포트를 고르면 된다
+              (클럭만 듣고 노트/CC 는 무시하므로 피드백은 생기지 않는다). Studio One 쪽에서는 외장 장치 설정의
+              <span className="text-slate-500 font-bold"> &quot;MIDI 클럭 보내기&quot; </span>
+              가 켜져 있어야 한다. <span className="text-slate-500">표시 전용이며 곡 BPM 은 바뀌지 않는다.</span>
+            </p>
           </div>
         </div>
       </div>

@@ -3,6 +3,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { midiService } from './webMidiService';
 import { Song, ProjectData, GlobalMapping, GlobalActionType, CCState, CCMapping } from './types';
 import { useMidiEngine } from './hooks/useMidiEngine';
+import { useLiveTriggers } from './hooks/useLiveTriggers';
+import { useDawClock } from './hooks/useDawClock';
+import { isInputCaptured, isTypingTarget } from './utils/inputCapture';
 import Navigation from './components/Navigation';
 import Editor from './components/Editor';
 import Performance from './components/Performance';
@@ -90,6 +93,9 @@ const App: React.FC = () => {
   const [midiLogs, setMidiLogs] = useState<MidiLogEntry[]>([]);
   const [ccStates, setCCStates] = useState<Record<string, number>>({}); // key: "channel-cc", value: 0-127
 
+  // 주의: currentSongId 는 프로젝트를 갈아끼운 직후 존재하지 않는 곡을 가리킬 수 있다.
+  // 표시는 아래 폴백 덕에 멀쩡하지만, 곡을 "수정"할 때 currentSongId 로 찾으면
+  // 아무 곡과도 매칭되지 않아 조용히 실패한다. 그럴 땐 currentSong.id 를 쓸 것.
   const currentSong = project.songs.find(s => s.id === currentSongId) || project.songs[0];
   const { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences, triggerTogglePreset, getTogglePresetState } = useMidiEngine(project, currentSong);
 
@@ -132,6 +138,15 @@ const App: React.FC = () => {
     }
   }, [triggerPreset, triggerSequence, triggerTogglePreset, currentSong, handleUpdateSong]);
 
+  // 곡 매핑 → 키보드/MIDI 연결. App 레벨에 두었기 때문에 Editor·Settings 탭에서도
+  // 연주가 그대로 살아 있다. (매핑 러닝 중이거나 글자를 입력 중일 때만 비켜난다)
+  const { pressedKeys, pressedMidiNotes } = useLiveTriggers(currentSong, project.selectedInputId, handleActionTrigger);
+
+  // DAW 가 흘려보내는 MIDI 클럭에서 읽은 템포와 박 (표시 전용).
+  // MIDI 클럭은 4분음표당 24틱이므로, 8분음표를 한 박으로 세는 6/8 같은 곡은 12틱이 한 박이다.
+  const beatUnit = currentSong?.beatUnit || 4;
+  const { bpm: dawBpm, beat: dawBeat } = useDawClock(project.selectedClockInputId, (24 * 4) / beatUnit);
+
   const handleGlobalActionTrigger = useCallback((action: GlobalMapping) => {
     if (!action.isEnabled) return;
     const currentIndex = project.songs.findIndex(s => s.id === currentSongId);
@@ -147,6 +162,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
+      if (isInputCaptured() || isTypingTarget(e.target)) return;
       const key = e.key.toLowerCase();
       project.globalMappings.forEach(gm => {
         const allowedKeys = gm.keyboardValue.toLowerCase().split(',').map(v => v.trim());
@@ -178,6 +194,10 @@ const App: React.FC = () => {
 
       // Log to MIDI monitor
       addMidiLog({ type: 'noteon', channel, note: e.note.number, velocity: e.note.rawAttack });
+
+      // 매핑 러닝 중에는 그 노트가 러닝 대상이므로 액션으로 흘려보내지 않는다
+      // (모니터 로그는 남긴다 — 무엇이 들어왔는지 보여야 러닝이 편하다)
+      if (isInputCaptured()) return;
 
       project.globalMappings.forEach(gm => {
         const channelMatch = gm.midiChannel === 0 || gm.midiChannel === channel;
@@ -296,7 +316,7 @@ const App: React.FC = () => {
         <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />
         <main className="flex-1 relative overflow-auto p-8 bg-slate-950 custom-scrollbar">
           {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={handleUpdateSong} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
-          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} globalCCMappings={project.globalCCMappings} />}
+          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} globalCCMappings={project.globalCCMappings} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} dawBpm={dawBpm} dawBeat={dawBeat} />}
           {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} />}
         </main>
       </div>

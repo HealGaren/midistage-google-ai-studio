@@ -4,6 +4,7 @@ export { createVolcanoSong } from './volcano';
 export { createDesertEagleSong } from './desertEagle';
 export { createFMBusinessSong } from './fmBusiness';
 export { createAgogSong } from './agog';
+export { createApexSong } from './apex';
 
 import { Song } from '../types';
 import { createZeitgeistSong } from './zeitgeist';
@@ -11,6 +12,7 @@ import { createVolcanoSong } from './volcano';
 import { createDesertEagleSong } from './desertEagle';
 import { createFMBusinessSong } from './fmBusiness';
 import { createAgogSong } from './agog';
+import { createApexSong } from './apex';
 
 // Create all songs from the original 260222-songs JSON
 export function createAllSongs(): Song[] {
@@ -18,7 +20,8 @@ export function createAllSongs(): Song[] {
     createVolcanoSong(),
     createDesertEagleSong(),
     createFMBusinessSong(),
-    createAgogSong()
+    createAgogSong(),
+    createApexSong()
   ];
 }
 
@@ -29,6 +32,7 @@ export function createAllSongsWithZeitgeist(): Song[] {
     createVolcanoSong(),
     createDesertEagleSong(),
     createFMBusinessSong(),
-    createAgogSong()
+    createAgogSong(),
+    createApexSong()
   ];
 }

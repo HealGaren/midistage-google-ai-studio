@@ -1,4 +1,4 @@
-import { Song, NotePreset, NoteItem, Sequence, SequenceItem, SequenceMode, InputMapping, Scene } from '../types';
+import { Song, NotePreset, NoteItem, Sequence, SequenceItem, SequenceMode, InputMapping, Scene, CCMapping } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Helper to convert note name (e.g., "C#4") to MIDI number
@@ -274,6 +274,7 @@ export function convertOldBankToSong(bank: OldBank, bpm: number = 120): Song {
     presetFolders,
     sequences,
     mappings,
+    ccMappings: [], // 구 Bank 포맷에는 CC 매핑 개념이 없다
     scenes: [scene],
     activeSceneId: sceneId
   };
@@ -328,6 +329,12 @@ export function importSongFromJson(jsonString: string): Song {
       ...m,
       id: getNewId(m.id),
       actionTargetId: m.actionTargetId ? getNewId(m.actionTargetId) : ''
+    })),
+    // CC 매핑은 다른 것을 참조하지 않으므로 id만 새로 발급하면 된다.
+    // (예전에는 이 줄이 없어서 곡을 JSON으로 임포트하면 CC 매핑이 통째로 사라졌다)
+    ccMappings: (parsed.ccMappings || []).map((c: CCMapping) => ({
+      ...c,
+      id: getNewId(c.id)
     })),
     scenes: (parsed.scenes || []).map((s: Scene) => ({
       id: getNewId(s.id),

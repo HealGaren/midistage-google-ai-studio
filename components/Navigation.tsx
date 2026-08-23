@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { Song, ProjectData } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { downloadSongAsJson, importSongFromJson } from '../utils/songImportExport';
-import { createZeitgeistSong, createVolcanoSong, createDesertEagleSong, createFMBusinessSong, createAgogSong } from '../data';
+import { createZeitgeistSong, createVolcanoSong, createDesertEagleSong, createFMBusinessSong, createAgogSong, createApexSong } from '../data';
 
 interface NavigationProps {
   songs: Song[];
@@ -142,13 +142,19 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
     addSongWithGlobalMapping(agogSong);
   };
 
+  const importApex = () => {
+    const apexSong = createApexSong();
+    addSongWithGlobalMapping(apexSong);
+  };
+
   const importAllSongs = () => {
     const allSongs = [
       createZeitgeistSong(),
       createVolcanoSong(),
       createDesertEagleSong(),
       createFMBusinessSong(),
-      createAgogSong()
+      createAgogSong(),
+      createApexSong()
     ];
     
     onUpdateProject(prev => {
@@ -251,10 +257,17 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
           </button>
           <button
             onClick={importAgog}
-            className="px-2 py-1.5 bg-green-900/30 hover:bg-green-800/30 text-green-400 hover:text-green-300 rounded text-[8px] font-bold uppercase tracking-wider transition-all border border-green-800/30 col-span-2"
+            className="px-2 py-1.5 bg-green-900/30 hover:bg-green-800/30 text-green-400 hover:text-green-300 rounded text-[8px] font-bold uppercase tracking-wider transition-all border border-green-800/30"
             title="Import Agog song"
           >
             Agog
+          </button>
+          <button
+            onClick={importApex}
+            className="px-2 py-1.5 bg-rose-900/30 hover:bg-rose-800/30 text-rose-400 hover:text-rose-300 rounded text-[8px] font-bold uppercase tracking-wider transition-all border border-rose-800/30"
+            title="Import APEX song"
+          >
+            APEX
           </button>
         </div>
       </div>

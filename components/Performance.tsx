@@ -1,7 +1,6 @@
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Song, ActiveNoteState, InputMapping, SequenceMode, CCMapping } from '../types';
-import { midiService } from '../webMidiService';
 
 interface PerformanceProps {
   song: Song;
@@ -13,7 +12,95 @@ interface PerformanceProps {
   onUpdateSong: (song: Song) => void;
   ccStates: Record<string, number>; // key: "channel-cc", value: 0-127
   globalCCMappings?: CCMapping[];
+  // App 의 useLiveTriggers 가 들고 있는 눌림 상태 (하이라이트 표시용)
+  pressedKeys: Set<string>;
+  pressedMidiNotes: Set<string>;
+  // DAW 의 MIDI 클럭에서 읽은 실제 템포. 클럭이 없으면 null
+  dawBpm?: number | null;
+  // DAW 클럭의 박 카운터 (24틱마다 증가). LED 를 DAW 박에 위상까지 맞추는 데 쓴다
+  dawBeat?: number;
 }
+
+/**
+ * 한 마디의 박 수만큼 불을 두고, 현재 박에만 불이 들어오게 한다.
+ *
+ * 강세는 크기와 색으로 구분한다.
+ *  - 1박(강) : 가장 크고 밝게
+ *  - 6박처럼 3의 배수인 겹박자는 중간(4박째)을 중강으로 — 6/8 의 강·약·약 / 중강·약·약
+ *
+ * MIDI 클럭에는 마디 정보가 없어서 1박이 실제 다운비트라는 보장이 없다.
+ * 그래서 누르면 그 순간을 1박으로 맞출 수 있게 했다.
+ */
+const accentOf = (index: number, beats: number): 'strong' | 'medium' | 'weak' => {
+  if (index === 0) return 'strong';
+  // 6, 9, 12박 같은 겹박자는 3박마다 중강
+  if (beats % 3 === 0 && beats > 3 && index % 3 === 0) return 'medium';
+  return 'weak';
+};
+
+const BeatLeds: React.FC<{
+  label: string;
+  beats: number;
+  pulse: number;          // 박이 바뀔 때마다 증가하는 카운터
+  active: boolean;        // 신호가 살아 있는지 (죽으면 전부 소등)
+  tone: 'daw' | 'song';
+  hint: string;
+  onResetDownbeat: () => void;
+}> = ({ label, beats, pulse, active, tone, hint, onResetDownbeat }) => {
+  const current = ((pulse % beats) + beats) % beats;
+  const palette = tone === 'daw'
+    ? { strong: 'bg-emerald-200', medium: 'bg-emerald-400', weak: 'bg-emerald-500', glow: '52,211,153' }
+    : { strong: 'bg-sky-200', medium: 'bg-sky-400', weak: 'bg-sky-500', glow: '56,189,248' };
+
+  return (
+    <button
+      onClick={onResetDownbeat}
+      title={hint + ' · 눌러서 1박 위치를 맞출 수 있다'}
+      className="flex items-center gap-2.5 px-3 py-1.5 rounded-full border border-slate-800 bg-slate-900/60 hover:border-slate-700 transition-colors"
+    >
+      <span className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-600 w-8 text-left">{label}</span>
+      <span className="flex items-end gap-1.5">
+        {Array.from({ length: beats }, (_, i) => {
+          const accent = accentOf(i, beats);
+          const size = accent === 'strong' ? 'w-4 h-4' : accent === 'medium' ? 'w-3 h-3' : 'w-2 h-2';
+          const lit = active && i === current;
+          return (
+            <span
+              key={i === current ? `${i}-${pulse}` : i}
+              className={`${size} rounded-full ${lit ? palette[accent] : 'bg-slate-700/60'}`}
+              style={lit ? {
+                animation: 'beatFlash 100ms steps(1,end) forwards',
+                boxShadow: `0 0 14px 3px rgba(${palette.glow},0.95)`
+              } : undefined}
+            />
+          );
+        })}
+      </span>
+      {/*
+        확 깜빡이도록 페이드를 쓰지 않는다. steps(1,end) 로 켬/끔 두 상태만 두고
+        점등 시간을 100ms 로 짧게 잡아 대비를 키웠다.
+      */}
+      <style>{`
+        @keyframes beatFlash {
+          from { opacity: 1;    transform: scale(1.5); }
+          to   { opacity: 0.12; transform: scale(1); }
+        }
+      `}</style>
+    </button>
+  );
+};
+
+/** 곡 BPM 으로 자유 진동하는 박 카운터 */
+const useFreeRunBeat = (bpm: number, beatUnit: number): number => {
+  const [pulse, setPulse] = useState(0);
+  useEffect(() => {
+    // bpm 은 4분음표 기준이므로 8분음표 박이면 주기가 절반이다
+    const ms = (60000 / (bpm || 120)) * (4 / (beatUnit || 4));
+    const id = setInterval(() => setPulse(p => p + 1), ms);
+    return () => clearInterval(id);
+  }, [bpm, beatUnit]);
+  return pulse;
+};
 
 const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
   return (
@@ -34,12 +121,18 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
   );
 };
 
-const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState, globalCCMappings = [] }) => {
-  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
-  // Store as "channel-pitch" string to include channel info
-  const [pressedMidiNotes, setPressedMidiNotes] = useState<Set<string>>(new Set());
+const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState, globalCCMappings = [], pressedKeys, pressedMidiNotes, dawBpm, dawBeat }) => {
+  // 박자표. 없으면 4/4 로 본다.
+  const beatsPerBar = song.beatsPerBar || 4;
+  const beatUnit = song.beatUnit || 4;
+  const songPulse = useFreeRunBeat(song.bpm, beatUnit);
+  // 1박 위치를 손으로 맞추기 위한 오프셋
+  const [songOffset, setSongOffset] = useState(0);
+  const [dawOffset, setDawOffset] = useState(0);
 
-  const activeScene = useMemo(() => 
+  // 키보드/MIDI 입력 처리는 App 레벨의 useLiveTriggers 로 옮겼다.
+  // 어느 탭에 있든 연주가 끊기지 않게 하기 위해서다. 여기서는 표시만 한다.
+  const activeScene = useMemo(() =>
     song.scenes.find(s => s.id === song.activeSceneId), 
     [song.scenes, song.activeSceneId]
   );
@@ -53,94 +146,6 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
 
   const globalMappings = useMemo(() => activeMappings.filter(m => m.scope === 'global'), [activeMappings]);
   const sceneMappings = useMemo(() => activeMappings.filter(m => m.scope === 'scene'), [activeMappings]);
-
-  const findMappings = useCallback((type: 'keyboard' | 'midi', value: string | number, channel?: number) => {
-    return activeMappings.filter(m => {
-      if (type === 'keyboard') {
-        const triggerStr = String(m.keyboardValue).toLowerCase();
-        const inputStr = String(value).toLowerCase();
-        const allowedValues = triggerStr.split(',').map(v => v.trim());
-        return allowedValues.includes(inputStr);
-      } else {
-        if (channel !== undefined) {
-          const channelMatch = m.midiChannel === 0 || m.midiChannel === channel;
-          if (!channelMatch) return false;
-        }
-
-        if (m.isMidiRange) {
-          const numValue = Number(value);
-          return numValue >= m.midiRangeStart && numValue <= m.midiRangeEnd;
-        } else {
-          const triggerStr = String(m.midiValue).toLowerCase();
-          const inputStr = String(value).toLowerCase();
-          const allowedValues = triggerStr.split(',').map(v => v.trim());
-          return allowedValues.includes(inputStr);
-        }
-      }
-    });
-  }, [activeMappings]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat) return;
-      const mappings = findMappings('keyboard', e.key);
-      if (mappings.length > 0) {
-        setPressedKeys(prev => new Set(prev).add(e.key.toLowerCase()));
-        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false, e.key));
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      const mappings = findMappings('keyboard', e.key);
-      if (mappings.length > 0) {
-        setPressedKeys(prev => { 
-          const next = new Set(prev); 
-          next.delete(e.key.toLowerCase()); 
-          return next; 
-        });
-        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true, e.key));
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
-  }, [findMappings, onTrigger]);
-
-  useEffect(() => {
-    const input = midiService.getInputById(selectedInputId);
-    if (!input) return;
-    
-    const onNoteOn = (e: any) => {
-      const pitch = e.note.number;
-      const channel = e.message.channel;
-      const noteKey = `${channel}-${pitch}`;
-      console.log(`[MIDI IN] NoteOn CH:${channel} Note:${pitch}`);
-      const mappings = findMappings('midi', pitch, channel);
-      if (mappings.length > 0) {
-        console.log(`[MIDI MATCH] Found ${mappings.length} mapping(s):`, mappings.map(m => `${m.keyboardValue}(CH:${m.midiChannel})`));
-        setPressedMidiNotes(prev => new Set(prev).add(noteKey));
-        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false, pitch));
-      }
-    };
-    
-    const onNoteOff = (e: any) => {
-      const pitch = e.note.number;
-      const channel = e.message.channel;
-      const noteKey = `${channel}-${pitch}`;
-      const mappings = findMappings('midi', pitch, channel);
-      if (mappings.length > 0) {
-        setPressedMidiNotes(prev => {
-          const next = new Set(prev);
-          next.delete(noteKey);
-          return next;
-        });
-        mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true, pitch));
-      }
-    };
-    
-    input.addListener('noteon', onNoteOn);
-    input.addListener('noteoff', onNoteOff);
-    return () => { input.removeListener('noteon', onNoteOn); input.removeListener('noteoff', onNoteOff); };
-  }, [selectedInputId, findMappings, onTrigger]);
 
   const getActionName = (type: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset', id: string) => {
     if (type === 'preset' || type === 'toggle_preset') return song.presets.find(p => p.id === id)?.name || 'Unknown Preset';
@@ -258,10 +263,43 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
         <div className="flex items-end justify-between">
           <div>
             <h2 className="text-4xl font-black text-white leading-none tracking-tight">{song.name}</h2>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex items-center gap-2">
               <span className="px-4 py-1.5 bg-indigo-500/10 rounded-full text-[10px] font-black text-indigo-400 border border-indigo-500/20 uppercase tracking-[0.2em]">
                 Tempo: {song.bpm} BPM
               </span>
+              {/* DAW 의 MIDI 클럭에서 읽은 실제 템포. 탭 템포로 바꾸면 여기가 따라 움직인다. */}
+              <span
+                title={dawBpm != null
+                  ? 'Studio One 의 MIDI 클럭에서 읽은 템포. 셋리스트 항목에 저장된 템포를 따라가며, 탭 템포로 바꾼 값은 반영되지 않는다(Studio One 동작).'
+                  : 'DAW 클럭이 잡히지 않는다. Settings 의 DAW Clock Input 과 Studio One 의 "MIDI 클럭 보내기" 를 확인할 것'}
+                className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border transition-colors ${
+                  dawBpm != null
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : 'bg-slate-800/60 text-slate-600 border-slate-700/60'
+                }`}
+              >
+                {dawBpm != null ? `DAW Clock: ${dawBpm.toFixed(1)} BPM` : 'DAW Clock: —'}
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <BeatLeds
+                label="Song"
+                beats={beatsPerBar}
+                pulse={songPulse - songOffset}
+                active
+                tone="song"
+                hint={`곡에 설정된 템포(${song.bpm} BPM · ${beatsPerBar}박)로 자유 진동`}
+                onResetDownbeat={() => setSongOffset(songPulse)}
+              />
+              <BeatLeds
+                label="DAW"
+                beats={beatsPerBar}
+                pulse={(dawBeat ?? 0) - dawOffset}
+                active={dawBpm != null}
+                tone="daw"
+                hint={dawBpm != null ? 'Studio One MIDI 클럭에 위상까지 동기됨' : 'DAW 클럭 없음'}
+                onResetDownbeat={() => setDawOffset(dawBeat ?? 0)}
+              />
             </div>
           </div>
           <div className="flex flex-col items-end gap-3">

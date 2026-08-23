@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Locally saved performance projects (loaded/saved via the in-app "Saved Projects" list)
+projects/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

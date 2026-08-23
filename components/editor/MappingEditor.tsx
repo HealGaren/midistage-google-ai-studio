@@ -4,6 +4,7 @@ import { Song, InputMapping, MappingScope } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { midiService } from '../../webMidiService';
 import { midiToNoteName } from './PianoView';
+import { useInputCapture } from '../../utils/inputCapture';
 
 interface MappingEditorProps {
   song: Song;
@@ -18,6 +19,9 @@ interface LearningState {
 
 export const MappingEditor: React.FC<MappingEditorProps> = ({ song, onUpdateSong, selectedInputId }) => {
   const [learning, setLearning] = useState<LearningState | null>(null);
+
+  // 러닝 중에는 그 입력이 여기로 와야 하므로 라이브 트리거를 잠시 멈춘다
+  useInputCapture(learning !== null);
 
   const handleLearn = useCallback((value: string | number) => {
     if (!learning) return;

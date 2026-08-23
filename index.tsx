@@ -16,12 +16,10 @@ const mountApp = () => {
   }
 
   try {
+    // StrictMode 를 쓰지 않는다. 개발 모드에서 이펙트와 렌더를 두 번 돌리는데,
+    // 이 앱은 키를 누를 때마다 트리 전체가 다시 그려져서 라이브 연주 반응이 눈에 띄게 느려진다.
     const root = ReactDOM.createRoot(rootElement);
-    root.render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
+    root.render(<App />);
   } catch (error) {
     console.error("MidiStage: Failed to initialize React application:", error);
   }

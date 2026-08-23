@@ -117,6 +117,10 @@ export interface Song {
   ccMappings: CCMapping[];
   scenes: Scene[];
   activeSceneId: string;
+  // 박자표. 박자 LED 의 개수와 강박 위치를 정한다. 없으면 4/4로 본다.
+  // 예) 콰지모도 = 6박(6/8) → beatsPerBar 6, beatUnit 8
+  beatsPerBar?: number;
+  beatUnit?: number;
 }
 
 export interface ProjectData {
@@ -124,6 +128,8 @@ export interface ProjectData {
   songs: Song[];
   selectedInputId: string;
   selectedOutputId: string;
+  // DAW 가 보내는 MIDI 클럭을 듣고 현재 템포를 표시하기 위한 입력. 표시 전용이라 없어도 된다.
+  selectedClockInputId?: string;
   globalMappings: GlobalMapping[];
   globalCCMappings: CCMapping[];
 }
