@@ -1,5 +1,14 @@
 import { useEffect } from 'react';
 
+/**
+ * KeyboardEvent.key 를 매핑에 적는 이름으로. 공백은 ' ' 라서 trim 에 지워지므로 'space' 로,
+ * 나머지는 소문자(ArrowLeft → arrowleft, Escape → escape). Settings 의 Learn 과 매칭 양쪽이 같이 쓴다.
+ */
+export function normalizeKey(key: string): string {
+  if (key === ' ' || key === 'Spacebar') return 'space';
+  return key.toLowerCase();
+}
+
 // 키보드/MIDI 입력을 "직접" 받아야 하는 모드(매핑 러닝 등)가 켜져 있는 동안
 // 라이브 트리거를 잠시 멈추기 위한 아주 작은 전역 스위치.
 //

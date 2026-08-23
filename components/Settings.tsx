@@ -3,8 +3,8 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ProjectData, GlobalMapping, GlobalActionType, CCMapping } from '../types';
 import { midiService } from '../webMidiService';
 import { v4 as uuidv4 } from 'uuid';
-import { listSavedProjects, loadSavedProject, saveProjectToFolder, deleteSavedProject, toFileName, SavedProjectMeta } from '../utils/projectStorage';
-import { useInputCapture } from '../utils/inputCapture';
+import { listSavedProjects, loadSavedProject, saveProjectToFolder, deleteSavedProject, toFileName, SavedProjectMeta, rememberLastProject, forgetLastProject } from '../utils/projectStorage';
+import { useInputCapture, normalizeKey } from '../utils/inputCapture';
 
 interface SettingsProps {
   project: ProjectData;
@@ -48,6 +48,7 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
     try {
       await saveProjectToFolder(saveName, project);
       setStorageStatus(`Saved to projects/${fileName}`);
+      rememberLastProject(fileName);
       await refreshSavedProjects();
     } catch (err: any) {
       setStorageStatus(`Save failed: ${err.message}`);
@@ -60,7 +61,8 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
       if (!Array.isArray(loaded.songs)) { setStorageStatus('Invalid project file.'); return; }
       onUpdateProject(() => loaded);
       setSaveName(name.replace(/\.json$/i, ''));
-      setStorageStatus(`Loaded ${name}`);
+      rememberLastProject(name);
+      setStorageStatus(`Loaded ${name} · 다음에 앱을 열면 자동으로 다시 불러옵니다`);
     } catch (err: any) {
       setStorageStatus(`Load failed: ${err.message}`);
     }
@@ -70,6 +72,7 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
     if (!window.confirm(`Delete "${name}" from the projects folder?`)) return;
     try {
       await deleteSavedProject(name);
+      if (localStorage.getItem('midistage.lastProjectFile') === name) forgetLastProject();
       setStorageStatus(`Deleted ${name}`);
       await refreshSavedProjects();
     } catch (err: any) {
@@ -116,7 +119,7 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
     const onKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
       if (e.repeat) return;
-      handleLearn(e.key);
+      handleLearn(normalizeKey(e.key));
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -441,6 +444,18 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
                       <option value="NEXT_SONG">Next Song</option>
                       <option value="GOTO_SONG">Go To Song #</option>
                       <option value="RESET_SEQUENCES">Reset All Sequences (Panic)</option>
+                      <optgroup label="Game 모드 (차트 싱크)">
+                        <option value="CHART_SYNC_BAR">Chart: Sync to Bar (탭 = 마디 첫 박)</option>
+                        <option value="CHART_SYNC_BEAT">Chart: Sync to Beat (탭 = 박)</option>
+                        <option value="CHART_NEXT_NOTE">Chart: Skip Next Note ▶</option>
+                        <option value="CHART_PREV_NOTE">Chart: Back One Note ◀</option>
+                        <option value="CHART_NEXT_BAR">Chart: Next Bar ▶▶</option>
+                        <option value="CHART_PREV_BAR">Chart: Prev Bar ◀◀</option>
+                        <option value="CHART_NEXT_SECTION">Chart: Next Section</option>
+                        <option value="CHART_PREV_SECTION">Chart: Prev Section</option>
+                        <option value="CHART_TOGGLE_RUN">Chart: Run / Stop</option>
+                        <option value="CHART_RESTART">Chart: Restart (to bar 1)</option>
+                      </optgroup>
                     </select>
                   </div>
                   {mapping.actionType === 'GOTO_SONG' && (

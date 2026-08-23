@@ -4,7 +4,7 @@ import { Song, InputMapping, MappingScope } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { midiService } from '../../webMidiService';
 import { midiToNoteName } from './PianoView';
-import { useInputCapture } from '../../utils/inputCapture';
+import { useInputCapture, normalizeKey } from '../../utils/inputCapture';
 
 interface MappingEditorProps {
   song: Song;
@@ -47,7 +47,7 @@ export const MappingEditor: React.FC<MappingEditorProps> = ({ song, onUpdateSong
     const onKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
       if (e.repeat) return;
-      handleLearn(e.key);
+      handleLearn(normalizeKey(e.key));
     };
 
     window.addEventListener('keydown', onKeyDown);

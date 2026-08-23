@@ -414,6 +414,22 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
     lastTriggerTimeByMappingRef.current.clear();
   }, [clearSustainedNotes]);
 
+  /**
+   * STEP(및 하위 시퀀스 없는 GROUP) 시퀀스의 "다음에 칠 스텝"을 강제로 맞춘다.
+   * Game 모드 차트가 쓴다 — 노트를 놓치거나 섹션을 건너뛰어도 다음 탭에서 차트가
+   * 가리키는 바로 그 음이 나오게. 울리고 있는 지속음은 그대로 둔다(다음 탭이 정리함).
+   */
+  const setSequenceStep = useCallback((seqId: string, index: number) => {
+    const seq = currentSong.sequences.find(s => s.id === seqId);
+    if (!seq || seq.items.length === 0) return;
+    const idx = ((index % seq.items.length) + seq.items.length) % seq.items.length;
+    if (stepIndicesRef.current[seqId] === idx) return;
+    stepIndicesRef.current[seqId] = idx;
+    setStepPositions(prev => ({ ...prev, [seqId]: idx - 1 }));
+  }, [currentSong]);
+
+  const getSequenceStep = useCallback((seqId: string): number => stepIndicesRef.current[seqId] || 0, []);
+
   const triggerTogglePreset = useCallback((presetId: string, mappingId: string = 'ui', triggerValue: string | number = 'direct') => {
     const preset = currentSong.presets.find(p => p.id === presetId);
     if (!preset) return;
@@ -441,5 +457,5 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
     return togglePresetStateRef.current.get(presetId) || false;
   }, []);
 
-  return { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences, triggerTogglePreset, getTogglePresetState };
+  return { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences, triggerTogglePreset, getTogglePresetState, setSequenceStep, getSequenceStep };
 };

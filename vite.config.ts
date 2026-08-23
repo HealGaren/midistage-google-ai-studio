@@ -95,6 +95,98 @@ function localProjectsApi(): Plugin {
   };
 }
 
+const AUDIO_DIR = path.join(PROJECTS_DIR, 'audio');
+const AUDIO_EXT = ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac'];
+const AUDIO_MIME: Record<string, string> = {
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.flac': 'audio/flac',
+};
+
+// Dev-only API for practice audio (Game 모드의 원곡 재생용). Files live in
+// gitignored ./projects/audio so they travel with the saved projects.
+//   GET    /api/audio            -> [{ name, size }]
+//   GET    /api/audio/<file>     -> the file (supports Range so <audio> can seek)
+//   PUT    /api/audio/<file>     -> write raw body to <file>
+//   DELETE /api/audio/<file>
+function localAudioApi(): Plugin {
+  const ensureDir = () => { if (!fs.existsSync(AUDIO_DIR)) fs.mkdirSync(AUDIO_DIR, { recursive: true }); };
+  const safeName = (raw: string): string | null => {
+    const decoded = decodeURIComponent(raw);
+    const base = path.basename(decoded);
+    const ext = path.extname(base).toLowerCase();
+    if (base !== decoded || base.startsWith('.') || !AUDIO_EXT.includes(ext)) return null;
+    return base;
+  };
+  const sendJson = (res: any, status: number, body: unknown) => {
+    res.statusCode = status;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify(body));
+  };
+
+  const handler: Connect.NextHandleFunction = (req, res, next) => {
+    const url = req.url || '';
+    if (!url.startsWith('/api/audio')) return next();
+    ensureDir();
+    const rest = url.split('?')[0].slice('/api/audio'.length).replace(/^\//, '');
+
+    if (rest === '') {
+      if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
+      const files = fs.readdirSync(AUDIO_DIR)
+        .filter(f => AUDIO_EXT.includes(path.extname(f).toLowerCase()))
+        .map(name => ({ name, size: fs.statSync(path.join(AUDIO_DIR, name)).size }));
+      return sendJson(res, 200, files);
+    }
+
+    const name = safeName(rest);
+    if (!name) return sendJson(res, 400, { error: 'Invalid audio file name' });
+    const filePath = path.join(AUDIO_DIR, name);
+
+    if (req.method === 'GET') {
+      if (!fs.existsSync(filePath)) return sendJson(res, 404, { error: 'Not found' });
+      const stat = fs.statSync(filePath);
+      const mime = AUDIO_MIME[path.extname(name).toLowerCase()] || 'application/octet-stream';
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Type', mime);
+      const range = req.headers.range;
+      if (range) {
+        const m = /bytes=(\d*)-(\d*)/.exec(range);
+        const start = m && m[1] ? parseInt(m[1], 10) : 0;
+        const end = m && m[2] ? Math.min(parseInt(m[2], 10), stat.size - 1) : stat.size - 1;
+        res.statusCode = 206;
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${stat.size}`);
+        res.setHeader('Content-Length', String(end - start + 1));
+        fs.createReadStream(filePath, { start, end }).pipe(res);
+      } else {
+        res.statusCode = 200;
+        res.setHeader('Content-Length', String(stat.size));
+        fs.createReadStream(filePath).pipe(res);
+      }
+      return;
+    }
+
+    if (req.method === 'PUT' || req.method === 'POST') {
+      const chunks: Buffer[] = [];
+      req.on('data', c => chunks.push(c as Buffer));
+      req.on('end', () => {
+        fs.writeFileSync(filePath, Buffer.concat(chunks));
+        sendJson(res, 200, { ok: true, name });
+      });
+      return;
+    }
+
+    if (req.method === 'DELETE') {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      return sendJson(res, 200, { ok: true });
+    }
+    return sendJson(res, 405, { error: 'Method not allowed' });
+  };
+
+  return {
+    name: 'local-audio-api',
+    configureServer(server) { server.middlewares.use(handler); },
+    configurePreviewServer(server) { server.middlewares.use(handler); },
+  };
+}
+
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
@@ -102,7 +194,7 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
-      plugins: [react(), localProjectsApi()],
+      plugins: [react(), localProjectsApi(), localAudioApi()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)

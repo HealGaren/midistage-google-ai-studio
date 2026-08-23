@@ -1,14 +1,19 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { midiService } from './webMidiService';
-import { Song, ProjectData, GlobalMapping, GlobalActionType, CCState, CCMapping } from './types';
+import { Song, ProjectData, GlobalMapping, GlobalActionType, CCState, CCMapping, ChartTakeEvent } from './types';
 import { useMidiEngine } from './hooks/useMidiEngine';
 import { useLiveTriggers } from './hooks/useLiveTriggers';
 import { useDawClock } from './hooks/useDawClock';
-import { isInputCaptured, isTypingTarget } from './utils/inputCapture';
+import { useConductor } from './hooks/useConductor';
+import { useTakeRecorder } from './hooks/useTakeRecorder';
+import { buildChartEvents, chartSettings } from './utils/chart';
+import { isInputCaptured, isTypingTarget, normalizeKey } from './utils/inputCapture';
+import { getLastProjectName, loadSavedProject } from './utils/projectStorage';
 import Navigation from './components/Navigation';
 import Editor from './components/Editor';
 import Performance from './components/Performance';
+import GameMode from './components/GameMode';
 import Settings from './components/Settings';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -87,7 +92,7 @@ const processCCValue = (inputValue: number, mapping: CCMapping): number => {
 const App: React.FC = () => {
   const [project, setProject] = useState<ProjectData>(DEFAULT_PROJECT);
   const [currentSongId, setCurrentSongId] = useState<string>(DEFAULT_PROJECT.songs[0].id);
-  const [activeTab, setActiveTab] = useState<'editor' | 'performance' | 'settings'>('performance');
+  const [activeTab, setActiveTab] = useState<'editor' | 'performance' | 'game' | 'settings'>('performance');
   const [isMidiReady, setIsMidiReady] = useState(false);
   const [showMidiMonitor, setShowMidiMonitor] = useState(false);
   const [midiLogs, setMidiLogs] = useState<MidiLogEntry[]>([]);
@@ -97,10 +102,26 @@ const App: React.FC = () => {
   // 표시는 아래 폴백 덕에 멀쩡하지만, 곡을 "수정"할 때 currentSongId 로 찾으면
   // 아무 곡과도 매칭되지 않아 조용히 실패한다. 그럴 땐 currentSong.id 를 쓸 것.
   const currentSong = project.songs.find(s => s.id === currentSongId) || project.songs[0];
-  const { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences, triggerTogglePreset, getTogglePresetState } = useMidiEngine(project, currentSong);
+  const { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences, triggerTogglePreset, getTogglePresetState, setSequenceStep } = useMidiEngine(project, currentSong);
+  const currentSongRef = useRef(currentSong);
+  currentSongRef.current = currentSong;
 
   useEffect(() => {
-    midiService.init().then(() => setIsMidiReady(true));
+    midiService.init().then(() => setIsMidiReady(true)).catch(() => setIsMidiReady(false));
+  }, []);
+
+  // 마지막으로 폴더에서 열었던 프로젝트를 자동 복구 (dev 서버가 있을 때만 동작).
+  // 새로고침/재시작으로 세트가 통째로 사라지는 사고를 막는다. 저장은 여전히 명시적.
+  useEffect(() => {
+    const last = getLastProjectName();
+    if (!last) return;
+    loadSavedProject(last)
+      .then(loaded => {
+        if (!Array.isArray(loaded.songs) || loaded.songs.length === 0) return;
+        setProject(loaded);
+        setCurrentSongId(loaded.songs[0].id);
+      })
+      .catch(() => { /* 정적 빌드 등 API 가 없으면 조용히 무시 */ });
   }, []);
 
   const handleUpdateProject = useCallback((updater: (prev: ProjectData) => ProjectData) => setProject(updater), []);
@@ -112,7 +133,19 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset', targetId: string, isRelease: boolean, triggerValue: string | number) => {
+  // ── Game 모드: 차트 → 이벤트, 지휘자(실시간 싱크 시계), 녹화기 ──
+  // App 레벨에 두어 어느 탭에 있든 시계가 흐르고 녹화가 된다.
+  const chartEvents = useMemo(() => buildChartEvents(currentSong), [currentSong]);
+  const chartSetting = useMemo(() => chartSettings(currentSong), [currentSong]);
+  const { conductor, snapshot: chartSnapshot } = useConductor({ song: currentSong, events: chartEvents, settings: chartSetting, setSequenceStep });
+  const recorder = useTakeRecorder(currentSong, handleUpdateSong);
+
+  const dispatchTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset', targetId: string, isRelease: boolean, triggerValue: string | number, fromReplay = false) => {
+    if (!fromReplay) recorder.capture({ mappingId, release: isRelease, value: triggerValue });
+    // 차트와 대조: 누르는 순간 "이게 차트의 어느 노트인지" 정해 싱크를 맞추고, 시퀀스면
+    // 엔진 스텝을 그 노트로 맞춘 뒤 친다(놓친 노트가 있어도 맞는 음이 나오도록).
+    if (!isRelease) conductor.onPress(mappingId);
+
     // toggle_preset은 릴리즈 무시, 누를 때만 토글
     if (actionType === 'toggle_preset') {
       if (!isRelease) {
@@ -136,11 +169,30 @@ const App: React.FC = () => {
         handleUpdateSong({ ...currentSong, activeSceneId: targetId });
       }
     }
-  }, [triggerPreset, triggerSequence, triggerTogglePreset, currentSong, handleUpdateSong]);
+  }, [triggerPreset, triggerSequence, triggerTogglePreset, currentSong, handleUpdateSong, conductor, recorder]);
+
+  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset', targetId: string, isRelease: boolean, triggerValue: string | number) =>
+    dispatchTrigger(mappingId, actionType, targetId, isRelease, triggerValue, false), [dispatchTrigger]);
+
+  // 테이크 재생: 녹화된 입력을 같은 파이프라인으로 흘려보낸다(엔진·지휘자가 그때처럼 반응)
+  const dispatchRef = useRef(dispatchTrigger);
+  dispatchRef.current = dispatchTrigger;
+  const handleReplayTake = useCallback((takeId: string) => {
+    recorder.replay(takeId, (ev: ChartTakeEvent) => {
+      const m = currentSongRef.current.mappings.find(x => x.id === ev.mappingId);
+      if (m) dispatchRef.current(m.id, m.actionType, m.actionTargetId, ev.release, ev.value, true);
+    }, startBeat => { conductor.seekBeat(startBeat); conductor.setRunning(true); });
+  }, [recorder, conductor]);
 
   // 곡 매핑 → 키보드/MIDI 연결. App 레벨에 두었기 때문에 Editor·Settings 탭에서도
   // 연주가 그대로 살아 있다. (매핑 러닝 중이거나 글자를 입력 중일 때만 비켜난다)
   const { pressedKeys, pressedMidiNotes } = useLiveTriggers(currentSong, project.selectedInputId, handleActionTrigger);
+
+  // Game 탭의 폴백 레인(차트가 없을 때): 지금 씬에서 살아 있는 매핑
+  const activeMappings = useMemo(() => {
+    const scene = currentSong.scenes.find(s => s.id === currentSong.activeSceneId);
+    return currentSong.mappings.filter(m => m.isEnabled && (m.scope === 'global' || (scene && scene.mappingIds.includes(m.id))));
+  }, [currentSong]);
 
   // DAW 가 흘려보내는 MIDI 클럭에서 읽은 템포와 박 (표시 전용).
   // MIDI 클럭은 4분음표당 24틱이므로, 8분음표를 한 박으로 세는 6/8 같은 곡은 12틱이 한 박이다.
@@ -155,25 +207,59 @@ const App: React.FC = () => {
       case 'NEXT_SONG': if (currentIndex < project.songs.length - 1) setCurrentSongId(project.songs[currentIndex + 1].id); break;
       case 'GOTO_SONG': const targetIdx = (action.actionValue || 1) - 1; if (project.songs[targetIdx]) setCurrentSongId(project.songs[targetIdx].id); break;
       case 'RESET_SEQUENCES': resetAllSequences(); break;
+      // Game 모드 차트 조작
+      case 'CHART_SYNC_BAR': conductor.syncBar(); break;
+      case 'CHART_SYNC_BEAT': conductor.syncBeat(); break;
+      case 'CHART_NEXT_NOTE': conductor.nextNote(); break;
+      case 'CHART_PREV_NOTE': conductor.prevNote(); break;
+      case 'CHART_NEXT_BAR': conductor.nextBar(); break;
+      case 'CHART_PREV_BAR': conductor.prevBar(); break;
+      case 'CHART_NEXT_SECTION': conductor.nextSection(); break;
+      case 'CHART_PREV_SECTION': conductor.prevSection(); break;
+      case 'CHART_TOGGLE_RUN': conductor.toggleRun(); break;
+      case 'CHART_RESTART': conductor.restart(); break;
     }
-  }, [project.songs, currentSongId, resetAllSequences]);
+  }, [project.songs, currentSongId, resetAllSequences, conductor]);
 
   // Global Keyboard Triggers
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (isInputCaptured() || isTypingTarget(e.target)) return;
-      const key = e.key.toLowerCase();
+      const key = normalizeKey(e.key);
+      let handled = false;
       project.globalMappings.forEach(gm => {
         const allowedKeys = gm.keyboardValue.toLowerCase().split(',').map(v => v.trim());
         if (allowedKeys.includes(key)) {
           handleGlobalActionTrigger(gm);
+          handled = true;
         }
       });
+      // Space/화살표 등이 페이지를 스크롤하거나 버튼을 누르지 않게
+      if (handled) e.preventDefault();
+    };
+    // Space 는 포커스된 버튼을 keyup 에서 클릭한다(방금 마우스로 누른 Run/Stop 같은 것).
+    // 전역 키로 쓰는 동안은 그 기본 동작도 막는다.
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (isInputCaptured() || isTypingTarget(e.target)) return;
+      const key = normalizeKey(e.key);
+      const mapped = project.globalMappings.some(gm => gm.keyboardValue.toLowerCase().split(',').map(v => v.trim()).includes(key));
+      if (mapped) e.preventDefault();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   }, [project.globalMappings, handleGlobalActionTrigger]);
+
+  // Live 탭의 Launchkey 그림에 "차트상 다음에 누를 키"를 비춰 주기 위한 매핑 id 들
+  const expectedMappingIds = useMemo(() => {
+    const b = chartSnapshot.nextEventBeat;
+    if (b === null) return undefined;
+    return new Set(chartEvents.filter(e => Math.abs(e.beat - b) < 0.01).map(e => e.mappingId));
+  }, [chartSnapshot.nextEventBeat, chartEvents]);
 
   // Global MIDI Triggers + MIDI Monitor Logging
   useEffect(() => {
@@ -262,8 +348,8 @@ const App: React.FC = () => {
           <div><h1 className="text-lg font-bold tracking-tight">MidiStage</h1><p className="text-xs text-slate-400 font-medium">{project.name}</p></div>
         </div>
         <div className="flex gap-2">
-          {(['performance', 'editor', 'settings'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-500'}`}>{tab === 'performance' ? 'Live' : tab === 'editor' ? 'Editor' : 'Settings'}</button>
+          {(['performance', 'game', 'editor', 'settings'] as const).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-500'}`}>{tab === 'performance' ? 'Live' : tab === 'game' ? 'Game' : tab === 'editor' ? 'Editor' : 'Settings'}</button>
           ))}
         </div>
         <div className="flex items-center gap-3">
@@ -316,7 +402,8 @@ const App: React.FC = () => {
         <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />
         <main className="flex-1 relative overflow-auto p-8 bg-slate-950 custom-scrollbar">
           {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={handleUpdateSong} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
-          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} globalCCMappings={project.globalCCMappings} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} dawBpm={dawBpm} dawBeat={dawBeat} />}
+          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} globalCCMappings={project.globalCCMappings} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} dawBpm={dawBpm} dawBeat={dawBeat} expectedMappingIds={chartSnapshot.running ? expectedMappingIds : undefined} />}
+          {activeTab === 'game' && <GameMode song={currentSong} conductor={conductor} snapshot={chartSnapshot} settings={chartSetting} events={chartEvents} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} ccStates={ccStates} onUpdateSong={handleUpdateSong} recorder={recorder} onReplayTake={handleReplayTake} activeMappings={activeMappings} />}
           {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} />}
         </main>
       </div>

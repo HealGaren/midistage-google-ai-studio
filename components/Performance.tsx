@@ -1,6 +1,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Song, ActiveNoteState, InputMapping, SequenceMode, CCMapping } from '../types';
+import { LaunchkeyView } from './LaunchkeyView';
 
 interface PerformanceProps {
   song: Song;
@@ -19,6 +20,8 @@ interface PerformanceProps {
   dawBpm?: number | null;
   // DAW 클럭의 박 카운터 (24틱마다 증가). LED 를 DAW 박에 위상까지 맞추는 데 쓴다
   dawBeat?: number;
+  // Game 차트가 진행 중일 때 "다음에 누를" 매핑들 — 기기 그림에서 깜빡인다
+  expectedMappingIds?: Set<string>;
 }
 
 /**
@@ -121,7 +124,7 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
   );
 };
 
-const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState, globalCCMappings = [], pressedKeys, pressedMidiNotes, dawBpm, dawBeat }) => {
+const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState, globalCCMappings = [], pressedKeys, pressedMidiNotes, dawBpm, dawBeat, expectedMappingIds }) => {
   // 박자표. 없으면 4/4 로 본다.
   const beatsPerBar = song.beatsPerBar || 4;
   const beatUnit = song.beatUnit || 4;
@@ -129,6 +132,9 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
   // 1박 위치를 손으로 맞추기 위한 오프셋
   const [songOffset, setSongOffset] = useState(0);
   const [dawOffset, setDawOffset] = useState(0);
+  // 트리거 표시: 버튼 격자 vs Launchkey 기기 모양(어느 키/패드에 뭐가 걸려 있고 뭐가 눌렸는지)
+  const [view, setView] = useState<'device' | 'grid'>(() => (localStorage.getItem('midistage.liveView') as 'device' | 'grid') || 'device');
+  useEffect(() => { localStorage.setItem('midistage.liveView', view); }, [view]);
 
   // 키보드/MIDI 입력 처리는 App 레벨의 useLiveTriggers 로 옮겼다.
   // 어느 탭에 있든 연주가 끊기지 않게 하기 위해서다. 여기서는 표시만 한다.
@@ -303,17 +309,31 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
             </div>
           </div>
           <div className="flex flex-col items-end gap-3">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Active Scene</span>
-            <div className="flex bg-slate-900 p-2 rounded-2xl border border-slate-800 shadow-2xl">
-               {song.scenes.map(scene => (
-                 <button 
-                  key={scene.id} 
-                  onClick={() => onUpdateSong({ ...song, activeSceneId: scene.id })}
-                  className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase transition-all ${song.activeSceneId === scene.id ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-600 hover:text-slate-400'}`}
-                 >
-                   {scene.name}
-                 </button>
-               ))}
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">View</span>
+                <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+                  {(['device', 'grid'] as const).map(v => (
+                    <button key={v} onClick={() => setView(v)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${view === v ? 'bg-slate-700 text-white' : 'text-slate-600 hover:text-slate-400'}`}>
+                      {v === 'device' ? '🎹 Launchkey' : '▦ Grid'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Active Scene</span>
+                <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-2xl">
+                   {song.scenes.map(scene => (
+                     <button
+                      key={scene.id}
+                      onClick={() => onUpdateSong({ ...song, activeSceneId: scene.id })}
+                      className={`px-6 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${song.activeSceneId === scene.id ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-600 hover:text-slate-400'}`}
+                     >
+                       {scene.name}
+                     </button>
+                   ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -321,9 +341,28 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-12">
-          
+
+          {/* Launchkey 기기 뷰: 어느 키/패드에 뭐가 걸려 있고 지금 뭐가 눌렸는지 */}
+          {view === 'device' && (
+            <section className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="h-px bg-slate-800 flex-1"></div>
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] flex-shrink-0">Launchkey Mini MK3 · {activeScene?.name}</h3>
+                <div className="h-px bg-slate-800 flex-1"></div>
+              </div>
+              <LaunchkeyView
+                song={song}
+                pressedKeys={pressedKeys}
+                pressedMidiNotes={pressedMidiNotes}
+                ccStates={ccStates}
+                expectedMappingIds={expectedMappingIds}
+                onTrigger={(m, release) => onTrigger(m.id, m.actionType, m.actionTargetId, release, 'mouse')}
+              />
+            </section>
+          )}
+
           {/* Global Triggers Section */}
-          <section className="space-y-6">
+          <section className={`space-y-6 ${view === 'device' ? 'hidden' : ''}`}>
             <div className="flex items-center gap-4">
               <div className="h-px bg-slate-800 flex-1"></div>
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] flex-shrink-0">Global Triggers</h3>
@@ -340,7 +379,7 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
           </section>
 
           {/* Scene Triggers Section */}
-          <section className="space-y-6">
+          <section className={`space-y-6 ${view === 'device' ? 'hidden' : ''}`}>
             <div className="flex items-center gap-4">
               <div className="h-px bg-slate-800 flex-1"></div>
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] flex-shrink-0">Scene: {activeScene?.name}</h3>

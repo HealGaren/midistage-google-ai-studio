@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Song, InputMapping } from '../types';
 import { midiService } from '../webMidiService';
-import { isInputCaptured, isTypingTarget } from '../utils/inputCapture';
+import { isInputCaptured, isTypingTarget, normalizeKey } from '../utils/inputCapture';
 
 export type TriggerFn = (
   mappingId: string,
@@ -72,26 +72,27 @@ export function useLiveTriggers(song: Song, selectedInputId: string, onTrigger: 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (isInputCaptured() || isTypingTarget(e.target)) return;
-      const mappings = findMappings('keyboard', e.key);
+      const key = normalizeKey(e.key);
+      const mappings = findMappings('keyboard', key);
       if (mappings.length === 0) return;
-      setPressedKeys(prev => new Set(prev).add(e.key.toLowerCase()));
-      mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false, e.key));
+      setPressedKeys(prev => new Set(prev).add(key));
+      mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, false, key));
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       // 릴리즈는 조건 없이 흘려보낸다. 눌린 상태였는지 setState 업데이터로 판별하려 들면 안 된다 —
       // React 는 그 함수를 나중에 실행하므로 결과를 여기서 읽을 수 없고, 그러면 duration: null 인
       // 노트가 노트오프를 못 받아 계속 울린다. 중복 릴리즈는 엔진이 activeMappingByTarget 으로 거른다.
-      const mappings = findMappings('keyboard', e.key);
+      const keyLower = normalizeKey(e.key);
+      const mappings = findMappings('keyboard', keyLower);
       if (mappings.length === 0) return;
-      const keyLower = e.key.toLowerCase();
       setPressedKeys(prev => {
         if (!prev.has(keyLower)) return prev;
         const next = new Set(prev);
         next.delete(keyLower);
         return next;
       });
-      mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true, e.key));
+      mappings.forEach(m => onTrigger(m.id, m.actionType, m.actionTargetId, true, keyLower));
     };
 
     window.addEventListener('keydown', handleKeyDown);
