@@ -122,7 +122,7 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
         ctx, W: size.w, H: size.h, song, settings, events: live.events, spans,
         pos: visPos.current, now, holding: conductor.isHolding(), running: conductor.isRunning(),
         statusOf: conductor.statusOf, fx, pressedKeys: live.pressedKeys, pressedMidiNotes: live.pressedMidiNotes,
-        layout, labels, nextEventBeat: next?.beat ?? null, nextLanes,
+        layout, labels, nextEventBeat: next?.beat ?? null, nextLanes, combo: conductor.getCombo(),
       });
       raf = requestAnimationFrame(frame);
     };

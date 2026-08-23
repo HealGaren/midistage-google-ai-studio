@@ -93,6 +93,8 @@ export interface Conductor {
   attachAudio: (el: HTMLAudioElement | null) => void;
   /** Game 탭이 보이는 동안만 true — 멈춘 상태에서 첫 히트로 자동 시작할지 */
   setAutoStart: (on: boolean) => void;
+  /** 연속 히트 수 (놓치면 0) */
+  getCombo: () => number;
   /** 다음에 쳐야 할 노트(들) — 첫 pending 과 같은 박 */
   nextPending: () => { beat: number; mappingIds: string[] } | null;
   /** 디버그용 내부 상태 덤프 */
@@ -144,7 +146,7 @@ export function useConductor({ song, events, settings, setSequenceStep }: Args):
   const lastHit = useRef<{ beat: number; time: number } | null>(null);
   const tempoSamples = useRef<{ beat: number; time: number }[]>([]);
   const fx = useRef<HitFx[]>([]);
-  const counts = useRef({ hits: 0, misses: 0 });
+  const counts = useRef({ hits: 0, misses: 0, combo: 0, bestCombo: 0 });
   const lastOffset = useRef<number | null>(null);
   const eventsRef = useRef(events);
   const settingsRef = useRef(settings);
@@ -216,6 +218,7 @@ export function useConductor({ song, events, settings, setSequenceStep }: Args):
   function markMissed(e: ChartEvent, now: number) {
     status.current.set(e.id, 'missed');
     counts.current.misses++;
+    counts.current.combo = 0;
     fx.current.push({ time: now, mappingId: e.mappingId, beat: e.beat, kind: 'miss', offsetMs: 0 });
   }
 
@@ -321,6 +324,7 @@ export function useConductor({ song, events, settings, setSequenceStep }: Args):
       if (e.beat > raw + st.earlyWindowBeats || e.beat < raw - st.lateWindowBeats) return null;
       status.current.set(e.id, 'hit');
       counts.current.hits++;
+      counts.current.combo++; counts.current.bestCombo = Math.max(counts.current.bestCombo, counts.current.combo);
       const offsetMs = (raw - e.beat) * beatMs();
       lastOffset.current = offsetMs;
       fx.current.push({ time: now, mappingId, beat: e.beat, kind: 'hit', offsetMs });
@@ -336,6 +340,7 @@ export function useConductor({ song, events, settings, setSequenceStep }: Args):
     lastOffset.current = offsetMs;
     status.current.set(e.id, 'hit');
     counts.current.hits++;
+    counts.current.combo++; counts.current.bestCombo = Math.max(counts.current.bestCombo, counts.current.combo);
     fx.current.push({ time: now, mappingId, beat: e.beat, kind: 'hit', offsetMs });
     missBefore(e.beat - CHORD_TOL_BEATS, now);   // 추월한 것은 놓침. 같은 박은 유예
     advancePtr();
@@ -504,6 +509,7 @@ export function useConductor({ song, events, settings, setSequenceStep }: Args):
     toggleRun, setRunning, restart, setMode,
     attachAudio: (el: HTMLAudioElement | null) => { audioEl.current = el; },
     setAutoStart: (on: boolean) => { autoStart.current = on; },
+    getCombo: () => counts.current.combo,
     nextPending,
     debug,
   };
@@ -533,6 +539,7 @@ export function useConductor({ song, events, settings, setSequenceStep }: Args):
     setMode: (m: ConductorMode) => implRef.current.setMode(m),
     attachAudio: (el: HTMLAudioElement | null) => implRef.current.attachAudio(el),
     setAutoStart: (on: boolean) => implRef.current.setAutoStart(on),
+    getCombo: () => implRef.current.getCombo(),
     nextPending: () => implRef.current.nextPending(),
     debug: () => implRef.current.debug(),
   }), []);
@@ -569,7 +576,7 @@ export function useConductor({ song, events, settings, setSequenceStep }: Args):
     lastHit.current = null;
     tempoSamples.current = [];
     fx.current = [];
-    counts.current = { hits: 0, misses: 0 };
+    counts.current = { hits: 0, misses: 0, combo: 0, bestCombo: 0 };
     lastOffset.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [song.id]);

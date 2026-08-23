@@ -49,6 +49,7 @@ export interface HighwayFrame {
   labels: Map<string, EventLabel>;   // eventId → 라벨(미리 계산)
   nextEventBeat: number | null;
   nextLanes: Set<string>;            // 다음 박에 눌러야 할 매핑 id
+  combo: number;
 }
 
 export interface Geometry {
@@ -280,7 +281,7 @@ export function drawHighway(f: HighwayFrame) {
   // ── 노트 ──
   const fxTime = new Map<string, number>();
   for (const x of f.fx) if (x.kind === 'hit') fxTime.set(`${x.mappingId}|${x.beat}`, x.time);
-  const minH = 16;
+  const minH = 26;
   ctx.textBaseline = 'middle';
   for (const e of events) {
     if (e.beat + e.durationBeats < bottomBeat - 1 || e.beat > topBeat) continue;
@@ -307,10 +308,10 @@ export function drawHighway(f: HighwayFrame) {
       roundRect(ctx, x + w * 0.18, y, w * 0.64, h, 6); ctx.stroke();
     }
     // 머리
-    const headH = Math.min(h, 22);
+    const headH = Math.min(h, 26);
     const isNext = st === 'pending' && f.nextEventBeat !== null && Math.abs(e.beat - f.nextEventBeat) < 0.01;
     const pulse = isNext && f.holding ? 0.5 + 0.5 * Math.abs(Math.sin(now / 180)) : 1;
-    ctx.fillStyle = st === 'missed' || st === 'skipped' ? `rgba(100,116,139,${alpha})` : hexA(l.color, (isNext ? 1 : 0.85) * alpha * pulse);
+    ctx.fillStyle = st === 'missed' || st === 'skipped' ? `rgba(100,116,139,${alpha})` : hexA(l.color, (isNext ? 1 : 0.95) * alpha * pulse);
     roundRect(ctx, x, yHead - headH, w, headH, 6); ctx.fill();
     ctx.strokeStyle = `rgba(255,255,255,${0.9 * alpha})`; ctx.lineWidth = isNext ? 2 : 1;
     roundRect(ctx, x, yHead - headH, w, headH, 6); ctx.stroke();
@@ -362,19 +363,51 @@ export function drawHighway(f: HighwayFrame) {
       if (t < 1) {
         ctx.strokeStyle = hexA(l.color, 1 - t); ctx.lineWidth = 3 * (1 - t) + 1;
         ctx.beginPath(); ctx.ellipse(cx, g.hitY, Math.min(l.w / 2 + 30 * t, l.w), 10 + 22 * t, 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = hexA(l.color, 0.35 * (1 - t));
-        ctx.fillRect(l.x, g.hitY - 60 * (1 - t), l.w, 60 * (1 - t));
+        // 히트 라이팅: 레인을 따라 위로 뻗는 빛기둥 (osu!mania 의 column lighting)
+        const colH = 260;
+        const grad = ctx.createLinearGradient(0, g.hitY - colH, 0, g.hitY);
+        grad.addColorStop(0, hexA(l.color, 0));
+        grad.addColorStop(1, hexA(l.color, 0.55 * (1 - t)));
+        ctx.fillStyle = grad;
+        ctx.fillRect(l.x, g.hitY - colH, l.w, colH);
       }
-      const off = Math.round(x.offsetMs);
-      const label = Math.abs(off) <= 35 ? 'PERFECT' : off > 0 ? `+${off}` : `${off}`;
-      const a = 1 - age / 650;
-      ctx.fillStyle = Math.abs(off) <= 35 ? `rgba(110,231,183,${a})` : off > 0 ? `rgba(251,146,60,${a})` : `rgba(96,165,250,${a})`;
-      ctx.font = '900 12px ui-sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(label, cx, g.hitY - 34 - age / 25);
+      // 판정 글자는 중앙 한 곳에만 (레인마다 적으면 시끄럽다)
     } else {
       ctx.fillStyle = `rgba(248,113,113,${1 - age / 650})`;
       ctx.font = '900 12px ui-sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('MISS', cx, g.hitY - 34 - age / 25);
+    }
+  }
+
+  // ── 중앙 판정 + 콤보 (StepMania/osu! 처럼 시선이 가는 한 곳에 크게) ──
+  {
+    const last = f.fx.length ? f.fx[f.fx.length - 1] : null;
+    if (last && now - last.time < 520) {
+      const age = now - last.time;
+      const a = age < 100 ? 1 : 1 - (age - 100) / 420;
+      const pop = 1 + 0.25 * Math.max(0, 1 - age / 120);
+      const off = Math.round(last.offsetMs);
+      const [word, color] = last.kind === 'miss' ? ['MISS', '248,113,113'] : Math.abs(off) <= 35 ? ['PERFECT', '110,231,183'] : off > 0 ? ['LATE', '251,146,60'] : ['EARLY', '96,165,250'];
+      const cx = g.hwX + g.hwW / 2, cy = g.hitY * 0.42;
+      ctx.save();
+      ctx.translate(cx, cy); ctx.scale(pop, pop);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '900 34px ui-sans-serif, system-ui';
+      ctx.shadowColor = `rgba(${color},${0.8 * a})`; ctx.shadowBlur = 22;
+      ctx.fillStyle = `rgba(${color},${a})`;
+      ctx.fillText(word, 0, 0);
+      ctx.shadowBlur = 0;
+      if (last.kind === 'hit' && word !== 'PERFECT') { ctx.font = '800 13px ui-sans-serif'; ctx.fillStyle = `rgba(226,232,240,${0.8 * a})`; ctx.fillText(`${off > 0 ? '+' : ''}${off} ms`, 0, 28); }
+      ctx.restore();
+    }
+    if (f.combo >= 3) {
+      const cx = g.hwX + g.hwW / 2, cy = g.hitY * 0.42 + 62;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '900 22px ui-sans-serif, system-ui';
+      ctx.fillStyle = 'rgba(253,224,71,0.9)';
+      ctx.fillText(`${f.combo}`, cx, cy);
+      ctx.font = '800 10px ui-sans-serif'; ctx.fillStyle = 'rgba(253,224,71,0.6)';
+      ctx.fillText('COMBO', cx, cy + 18);
     }
   }
 
