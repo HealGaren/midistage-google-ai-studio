@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import path from 'path';
 import fs from 'fs';
 import { defineConfig, loadEnv, type Plugin, type Connect } from 'vite';
@@ -182,6 +183,8 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      }
+      },
+      // vitest: 순수 로직(지휘자 코어, 차트, 기기 배치, 임포트)만 node 환경에서 돈다
+      test: { environment: 'node', include: ['**/*.test.ts'], exclude: ['node_modules', 'dist'] },
     };
 });
