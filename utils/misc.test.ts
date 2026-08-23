@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeKey } from './inputCapture';
+import { displayKey } from './chart';
 import { qwertyLayout } from './qwerty';
 import { importSongFromJson, exportSongToJson } from './songImportExport';
 import { buildChartEvents } from './chart';
@@ -8,6 +9,12 @@ import { makeSong } from '../test/fixtures';
 describe('normalizeKey', () => {
   it('공백은 space, 나머지는 소문자', () => {
     expect(normalizeKey(' ')).toBe('space'); expect(normalizeKey('ArrowLeft')).toBe('arrowleft'); expect(normalizeKey('J')).toBe('j');
+  });
+});
+
+describe('displayKey', () => {
+  it('한 글자는 대문자, 특수키는 기호 — 키캡/라벨/자판이 같은 규칙', () => {
+    expect(displayKey('j')).toBe('J'); expect(displayKey(';')).toBe(';'); expect(displayKey('arrowleft')).toBe('←'); expect(displayKey('space')).toBe('space');
   });
 });
 

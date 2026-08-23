@@ -1,6 +1,6 @@
 import { Song, ChartSettings, InputMapping } from '../../types';
-import { ChartEvent, SectionSpan, laneColor, keyLabel, mappingTargetName, sectionColor, noteName } from '../../utils/chart';
-import { highwayGeometry, KeyRect, PadRect, LK_PAD_CHANNEL, classifyMappingNotes, padOf } from '../../utils/launchkey';
+import { ChartEvent, SectionSpan, laneColor, keyLabel, mappingKeys, displayKey, mappingTargetName, sectionColor, noteName } from '../../utils/chart';
+import { highwayGeometry, KeyRect, PadRect, classifyMappingNotes, padOf } from '../../utils/launchkey';
 import { EventStatus, HitFx } from '../../hooks/useConductor';
 import { qwertyLayout, QwertyKey } from '../../utils/qwerty';
 
@@ -22,7 +22,8 @@ import { qwertyLayout, QwertyKey } from '../../utils/qwerty';
 export interface LaneBox {
   mappingId: string; x: number; w: number; color: string;
   keys: string;            // "J K L ;"
-  keyTokens: string[];     // ["j","k","l",";"] — pressedKeys 대조용
+  keyTokens: string[];     // ["j","k","l",";"] — pressedKeys 대조용 (normalizeKey 이름)
+  capLabel: string;        // 키캡에 적는 첫 키
   name: string;
   kind: 'keys' | 'pads' | 'extra';
   keyMidis: number[]; padMidis: number[];
@@ -44,7 +45,8 @@ export interface HighwayFrame {
   statusOf: (id: string) => EventStatus;
   fx: HitFx[];
   pressedKeys: Set<string>;
-  pressedMidiNotes: Set<string>;
+  pressedKeyMidis: Set<number>;   // 눌린 건반(ch≠10)
+  pressedPads: Set<number>;       // 눌린 패드(ch10)
   layout: Layout;
   labels: Map<string, EventLabel>;   // eventId → 라벨(미리 계산)
   nextEventBeat: number | null;
@@ -70,23 +72,24 @@ export interface Layout {
   laneByQwerty: Map<string, LaneBox>;
 }
 
+const EMPTY_SET: Set<string> = new Set();
 export const GUTTER_L = 150;
 export const GUTTER_R = 130;
 
 /** 레인 배치 계산. 폭/레이아웃/곡이 바뀔 때만 다시 한다. */
-export function computeLayout(song: Song, laneMappings: InputMapping[], W: number, H: number, settings: ChartSettings): Layout {
+export function computeLayout(song: Song, laneMappings: InputMapping[], W: number, H: number, layoutKind: ChartSettings['layout']): Layout {
   const gutterL = GUTTER_L, gutterR = GUTTER_R;
   const hwX = gutterL, hwW = Math.max(100, W - gutterL - gutterR);
-  const panelH = settings.layout === 'device' ? Math.max(90, Math.min(150, H * 0.17)) : settings.layout === 'keyboard' ? Math.max(120, Math.min(200, H * 0.24)) : 64;
+  const panelH = layoutKind === 'device' ? Math.max(90, Math.min(150, H * 0.17)) : layoutKind === 'keyboard' ? Math.max(120, Math.min(200, H * 0.24)) : 64;
   const hitY = H - panelH;
   const lanes: LaneBox[] = [];
   const mk = (m: InputMapping, x: number, w: number, kind: LaneBox['kind'], keyMidis: number[], padMidis: number[]): LaneBox => {
-    const keys = keyLabel(m);
-    return { mappingId: m.id, x, w, color: laneColor(song, m.id), keys, keyTokens: keys.toLowerCase().split(' ').filter(Boolean), name: mappingTargetName(song, m), kind, keyMidis, padMidis };
+    const tokens = mappingKeys(m).map(k => k.toLowerCase());
+    return { mappingId: m.id, x, w, color: laneColor(song, m.id), keys: keyLabel(m), keyTokens: tokens, capLabel: tokens[0] ? displayKey(tokens[0]) : '', name: mappingTargetName(song, m), kind, keyMidis, padMidis };
   };
 
   let geometry: Geometry;
-  if (settings.layout === 'device') {
+  if (layoutKind === 'device') {
     const classified = laneMappings.map(m => ({ m, ...classifyMappingNotes(m) }));
     const hasPads = classified.some(c => c.padMidis.length > 0);
     const extras = classified.filter(c => c.keyMidis.length === 0 && c.padMidis.length === 0);
@@ -112,19 +115,20 @@ export function computeLayout(song: Song, laneMappings: InputMapping[], W: numbe
     });
     extras.forEach((c, i) => lanes.push(mk(c.m, hwX + hwW - extraW * (extras.length - i), extraW - 4, 'extra', [], [])));
     geometry = { gutterL, gutterR, panelH, hitY, hwX, hwW, whiteKeys: keys.filter(k => !k.black), blackKeys: keys.filter(k => k.black), pads, hasPads, padArea, qwerty: [] };
-  } else if (settings.layout === 'keyboard') {
+  } else if (layoutKind === 'keyboard') {
     // 컴퓨터 키보드: 매핑된 글쇠들을 덮는 x 범위가 레인. 글쇠가 없는 매핑은 오른쪽 extra 레인
-    const qwerty = qwertyLayout({ x: hwX, y: hitY + 4, w: hwW, h: panelH - 8 });
+    // 글쇠 없는 매핑은 오른쪽 extra 레인 — 자판은 그만큼 폭을 양보한다(겹치지 않게)
+    const extras = laneMappings.filter(m => !mappingKeys(m).length);
+    const extraW = extras.length ? Math.min(70, hwW * 0.12) : 0;
+    const qwerty = qwertyLayout({ x: hwX, y: hitY + 4, w: hwW - extraW * extras.length - (extras.length ? 8 : 0), h: panelH - 8 });
     const byKey = new Map(qwerty.map(k => [k.key, k]));
-    const extras: InputMapping[] = [];
     laneMappings.forEach(m => {
       const c = classifyMappingNotes(m);
-      const ks = keyLabel(m).toLowerCase().split(' ').map(k => byKey.get(k)).filter((k): k is QwertyKey => !!k);
-      if (!ks.length) { extras.push(m); return; }
+      const ks = mappingKeys(m).map(k => byKey.get(k.toLowerCase())).filter((k): k is QwertyKey => !!k);
+      if (!ks.length) return;
       const x0 = Math.min(...ks.map(k => k.x)), x1 = Math.max(...ks.map(k => k.x + k.w));
       lanes.push(mk(m, x0, x1 - x0, 'keys', c.keyMidis, c.padMidis));
     });
-    const extraW = extras.length ? Math.min(70, hwW * 0.12) : 0;
     extras.forEach((m, i) => { const c = classifyMappingNotes(m); lanes.push(mk(m, hwX + hwW - extraW * (extras.length - i), extraW - 4, 'extra', c.keyMidis, c.padMidis)); });
     geometry = { gutterL, gutterR, panelH, hitY, hwX, hwW, whiteKeys: [], blackKeys: [], pads: [], hasPads: false, padArea: { x: 0, w: 0 }, qwerty };
   } else {
@@ -170,7 +174,28 @@ function hexA(hex: string, a: number): string {
   return v;
 }
 
+// 레인별 세로 그라데이션(투명→레인색)은 한 번만 만들고 globalAlpha 로 밝기만 바꾼다
+const gradCache = new WeakMap<LaneBox, Map<string, CanvasGradient>>();
+function laneGradient(ctx: CanvasRenderingContext2D, l: LaneBox, bottomY: number, h: number): CanvasGradient {
+  let m = gradCache.get(l); if (!m) { m = new Map(); gradCache.set(l, m); }
+  const key = `${bottomY}|${h}`;
+  let gr = m.get(key);
+  if (!gr) { gr = ctx.createLinearGradient(0, bottomY - h, 0, bottomY); gr.addColorStop(0, hexA(l.color, 0)); gr.addColorStop(1, l.color); m.set(key, gr); }
+  return gr;
+}
+
+const fitCache = new Map<string, string>();
+/** 글자를 폭에 맞춰 자른다. measureText 가 비싸서 (font|text|폭) 으로 캐시 */
 function fitText(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
+  const key = `${ctx.font}|${Math.round(maxW)}|${text}`;
+  const hit = fitCache.get(key);
+  if (hit !== undefined) return hit;
+  const r = fitTextRaw(ctx, text, maxW);
+  if (fitCache.size > 4000) fitCache.clear();
+  fitCache.set(key, r);
+  return r;
+}
+function fitTextRaw(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
   if (ctx.measureText(text).width <= maxW) return text;
   let lo = 0, hi = text.length;
   while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (ctx.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid; else hi = mid - 1; }
@@ -192,7 +217,8 @@ function drawCap(ctx: CanvasRenderingContext2D, r: { x: number; y: number; w: nu
 }
 
 export function drawHighway(f: HighwayFrame) {
-  const { ctx, W, H, song, settings, events, spans, pos, now, layout, labels, nextLanes } = f;
+  const { ctx, W, H, song, settings, events, spans, pos, now, layout, labels } = f;
+  const nextLanes = settings.flashNextLane ? f.nextLanes : EMPTY_SET;
   const { lanes, geometry: g, laneById } = layout;
   const bpb = song.beatsPerBar || 4;
   const lookBeats = Math.max(1, settings.lookaheadBars) * bpb;
@@ -272,13 +298,12 @@ export function drawHighway(f: HighwayFrame) {
   }
 
   // ── 다음 노트 레인 강조 ──
-  if (settings.flashNextLane) nextLanes.forEach(id => {
+  nextLanes.forEach(id => {
     const l = laneById.get(id); if (!l) return;
-    const grad = ctx.createLinearGradient(0, g.hitY - 160, 0, g.hitY);
-    grad.addColorStop(0, hexA(l.color, 0));
-    grad.addColorStop(1, hexA(l.color, f.holding ? 0.35 : 0.18));
-    ctx.fillStyle = grad;
+    ctx.globalAlpha = f.holding ? 0.35 : 0.18;
+    ctx.fillStyle = laneGradient(ctx, l, g.hitY, 160);
     ctx.fillRect(l.x, g.hitY - 160, l.w, 160);
+    ctx.globalAlpha = 1;
   });
 
   // ── 노트 ──
@@ -314,10 +339,13 @@ export function drawHighway(f: HighwayFrame) {
     const headH = Math.min(h, 26);
     const isNext = st === 'pending' && f.nextEventBeat !== null && Math.abs(e.beat - f.nextEventBeat) < 0.01;
     const pulse = isNext && f.holding ? 0.5 + 0.5 * Math.abs(Math.sin(now / 180)) : 1;
-    ctx.fillStyle = st === 'missed' || st === 'skipped' ? `rgba(100,116,139,${alpha})` : hexA(l.color, (isNext ? 1 : 0.95) * alpha * pulse);
+    ctx.globalAlpha = (st === 'missed' || st === 'skipped') ? alpha : (isNext ? 1 : 0.95) * alpha * pulse;
+    ctx.fillStyle = st === 'missed' || st === 'skipped' ? '#64748b' : l.color;
     roundRect(ctx, x, yHead - headH, w, headH, 6); ctx.fill();
-    ctx.strokeStyle = `rgba(255,255,255,${0.9 * alpha})`; ctx.lineWidth = isNext ? 2 : 1;
+    ctx.globalAlpha = 0.9 * alpha;
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = isNext ? 2 : 1;
     roundRect(ctx, x, yHead - headH, w, headH, 6); ctx.stroke();
+    ctx.globalAlpha = 1;
     if (isNext && f.holding) {
       ctx.shadowColor = l.color; ctx.shadowBlur = 18;
       roundRect(ctx, x, yHead - headH, w, headH, 6); ctx.stroke();
@@ -368,11 +396,10 @@ export function drawHighway(f: HighwayFrame) {
         ctx.beginPath(); ctx.ellipse(cx, g.hitY, Math.min(l.w / 2 + 30 * t, l.w), 10 + 22 * t, 0, 0, Math.PI * 2); ctx.stroke();
         // 히트 라이팅: 레인을 따라 위로 뻗는 빛기둥 (osu!mania 의 column lighting)
         const colH = 260;
-        const grad = ctx.createLinearGradient(0, g.hitY - colH, 0, g.hitY);
-        grad.addColorStop(0, hexA(l.color, 0));
-        grad.addColorStop(1, hexA(l.color, 0.55 * (1 - t)));
-        ctx.fillStyle = grad;
+        ctx.globalAlpha = 0.55 * (1 - t);
+        ctx.fillStyle = laneGradient(ctx, l, g.hitY, colH);
         ctx.fillRect(l.x, g.hitY - colH, l.w, colH);
+        ctx.globalAlpha = 1;
       }
       // 판정 글자는 중앙 한 곳에만 (레인마다 적으면 시끄럽다)
     } else {
@@ -417,28 +444,26 @@ export function drawHighway(f: HighwayFrame) {
   // ── 하단 패널 ──
   ctx.fillStyle = '#0b1220';
   ctx.fillRect(0, g.hitY, W, H - g.hitY);
-  const pressedKeysMidi = new Set<number>(), pressedPads = new Set<number>();
-  f.pressedMidiNotes.forEach(k => { const i = k.indexOf('-'); const ch = +k.slice(0, i), p = +k.slice(i + 1); (ch === LK_PAD_CHANNEL ? pressedPads : pressedKeysMidi).add(p); });
+  const pressedKeysMidi = f.pressedKeyMidis, pressedPads = f.pressedPads;
   const laneKeyPressed = (l: LaneBox) => l.keyTokens.some(k => f.pressedKeys.has(k));
-  if (!settings.flashNextLane) nextLanes.clear();
   const blink = 0.55 + 0.45 * Math.abs(Math.sin(now / 160));
 
   if (settings.layout === 'device') {
     for (const k of g.whiteKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);
       drawCap(ctx, { x: k.x + 1, y: k.y + 2, w: k.w - 2, h: k.h - 4 }, l, pressedKeysMidi.has(k.midi) || (!!l && laneKeyPressed(l)), !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: l ? 'tint' : '#e5e7eb', idleStroke: 'rgba(0,0,0,0)', radius: 4, label: l?.keyTokens[0]?.toUpperCase() || '', sub: settings.showKeyNames ? noteName(k.midi) : undefined });
+        { idleFill: l ? 'tint' : '#e5e7eb', idleStroke: 'rgba(0,0,0,0)', radius: 4, label: l?.capLabel || '', sub: settings.showKeyNames ? noteName(k.midi) : undefined });
     }
     for (const k of g.blackKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);
       drawCap(ctx, { x: k.x, y: k.y + 2, w: k.w, h: k.h - 2 }, l, pressedKeysMidi.has(k.midi) || (!!l && laneKeyPressed(l)), !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: '#111827', idleStroke: '#000', radius: 3, label: l?.keyTokens[0]?.toUpperCase() || '', labelY: k.y + k.h - 10 });
+        { idleFill: '#111827', idleStroke: '#000', radius: 3, label: l?.capLabel || '', labelY: k.y + k.h - 10 });
     }
     for (const p of g.pads) {
       const l = layout.laneByPadMidi.get(p.midi);
       const pressed = pressedPads.has(p.midi) || (!!l && laneKeyPressed(l));
       drawCap(ctx, p, l, pressed, !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: l ? 'tint' : '#111827', idleStroke: 'lane', radius: 5, label: l?.keyTokens[0]?.toUpperCase() || '', labelY: p.y + p.h / 2 + 4, labelColor: pressed ? '#0f172a' : '#f8fafc' });
+        { idleFill: l ? 'tint' : '#111827', idleStroke: 'lane', radius: 5, label: l?.capLabel || '', labelY: p.y + p.h / 2 + 4, labelColor: pressed ? '#0f172a' : '#f8fafc' });
       ctx.fillStyle = pressed ? '#0f172a' : '#64748b'; ctx.font = '800 8px ui-sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(String(p.midi), p.x + 4, p.y + 8);
     }

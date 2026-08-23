@@ -243,10 +243,27 @@ export function mappingKeys(m: InputMapping): string[] {
   return String(m.keyboardValue || '').split(',').map(s => s.trim()).filter(Boolean);
 }
 
-/** 화면에 적는 키 이름: 한 글자는 대문자("J K L ;"), 나머지는 그대로("space") */
-export function keyLabel(m: InputMapping): string {
-  return mappingKeys(m).map(k => k.length === 1 ? k.toUpperCase() : k).join(' ');
+/** 키 하나의 표시 이름 (한 글자는 대문자, 특수키는 기호). 모든 키캡/라벨이 이 규칙 하나를 쓴다 */
+const KEY_GLYPHS: Record<string, string> = { space: 'space', arrowleft: '←', arrowright: '→', arrowup: '↑', arrowdown: '↓', enter: '⏎', backspace: '⌫', escape: 'esc', shift: '⇧', pageup: 'PgUp', pagedown: 'PgDn', home: 'Home' };
+export function displayKey(k: string): string {
+  return k.length === 1 ? k.toUpperCase() : (KEY_GLYPHS[k] || k);
 }
+
+/** 화면에 적는 키 이름들: "J K L ;" */
+export function keyLabel(m: InputMapping): string {
+  return mappingKeys(m).map(displayKey).join(' ');
+}
+
+/** Game 레이아웃 선택지 (헤더 버튼과 ⚙ 가 같은 목록을 쓴다) */
+export const LAYOUT_OPTIONS: { value: ChartSettings['layout']; label: string }[] = [
+  { value: 'device', label: '🎹 Launchkey' },
+  { value: 'keyboard', label: '⌨ QWERTY' },
+  { value: 'lanes', label: '▦ Lanes' },
+];
+
+/** 0-based 마디 번호 / 마디 안 위치 */
+export const barOf = (beat: number, bpb: number) => Math.floor(beat / bpb);
+export const beatInBar = (beat: number, bpb: number) => beat - Math.floor(beat / bpb) * bpb;
 
 /** 현재 씬에서 살아 있는 매핑 (트리거 디스패치·Live 탭·Game 폴백 레인이 모두 같은 규칙) */
 export function activeMappingsFor(song: Song): InputMapping[] {

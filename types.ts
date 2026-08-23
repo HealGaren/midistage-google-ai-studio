@@ -98,7 +98,8 @@ export type GlobalActionType =
   | 'CHART_NEXT_BAR' | 'CHART_PREV_BAR'
   | 'CHART_NEXT_SECTION' | 'CHART_PREV_SECTION'
   | 'CHART_TOGGLE_RUN'    // 진행/정지
-  | 'CHART_RESTART';      // 곡 처음으로
+  | 'CHART_RESTART'       // 곡 처음으로
+  | 'TOGGLE_FOCUS';       // 포커스 모드(사이드바 숨김 + 전체화면)
 
 export interface GlobalMapping {
   id: string;

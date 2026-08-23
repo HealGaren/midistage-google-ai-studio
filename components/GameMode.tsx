@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState, RefObject } from 'react';
 import { Song, ChartSettings, InputMapping } from '../types';
 import { Conductor, ConductorSnapshot } from '../hooks/useConductor';
 import { TakeRecorder } from '../hooks/useTakeRecorder';
-import { ChartEvent, chartLaneMappings, sectionSpans, sectionColor, totalBars, emptyChart, innerNotesOf, noteName } from '../utils/chart';
+import { ChartEvent, chartLaneMappings, sectionSpans, sectionColor, totalBars, emptyChart, innerNotesOf, noteName, LAYOUT_OPTIONS } from '../utils/chart';
+import { LK_PAD_CHANNEL } from '../utils/launchkey';
 import { computeLayout, drawHighway, EventLabel } from './game/highwayRenderer';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -45,8 +46,13 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
   const [showSettings, setShowSettings] = useState(false);
   const [audio, setAudio] = useState({ time: 0, dur: 0, paused: true });
   // 렌더 루프가 매 프레임 읽는 값들은 ref 로 — 키를 누를 때마다 루프를 재시작하지 않게
-  const liveRef = useRef({ pressedKeys, pressedMidiNotes, events });
-  liveRef.current = { pressedKeys, pressedMidiNotes, events };
+  const pressedSets = useMemo(() => {
+    const keyMidis = new Set<number>(), pads = new Set<number>();
+    pressedMidiNotes.forEach(k => { const i = k.indexOf('-'); const ch = +k.slice(0, i), p = +k.slice(i + 1); (ch === LK_PAD_CHANNEL ? pads : keyMidis).add(p); });
+    return { keyMidis, pads };
+  }, [pressedMidiNotes]);
+  const liveRef = useRef({ pressedKeys, pressedSets, events, settings });
+  liveRef.current = { pressedKeys, pressedSets, events, settings };
   const bpb = song.beatsPerBar || 4;
   const sections = song.chart?.sections;
   const spans = useMemo(() => sectionSpans(song), [sections, bpb]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -68,7 +74,9 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
   }, []);
 
   // 레인 배치와 노트 라벨은 곡/차트가 바뀔 때만 다시 계산 (프레임마다 X)
-  const layout = useMemo(() => computeLayout(song, laneMappings, size.w, size.h, settings), [song.mappings, song.presets, song.sequences, laneMappings, size, settings]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 배치는 layout 종류에만, 라벨은 showInnerNotes 에만 달려 있다 — 표시 토글을 켜고 끌 때 다시 계산하지 않게
+  const layoutKind = settings.layout;
+  const layout = useMemo(() => computeLayout(song, laneMappings, size.w, size.h, layoutKind), [song.mappings, song.presets, song.sequences, laneMappings, size, layoutKind]); // eslint-disable-line react-hooks/exhaustive-deps
   const labels = useMemo(() => {
     const m = new Map<string, EventLabel>();
     for (const e of events) {
@@ -79,7 +87,7 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
       m.set(e.id, { text, autoDurBeats: inner.length ? Math.max(...inner.map(n => n.durationBeats)) : 0 });
     }
     return m;
-  }, [events, layout, settings.showInnerNotes, song]);
+  }, [events, layout, settings.showInnerNotes, song.mappings, song.presets, song.sequences, song.bpm, song.beatUnit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 오디오 상태(표시용) — 엘리먼트는 App 소유 ──
   useEffect(() => {
@@ -96,8 +104,10 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = size.w * dpr; canvas.height = size.h * dpr;
-    canvas.style.width = `${size.w}px`; canvas.style.height = `${size.h}px`;
+    if (canvas.width !== size.w * dpr || canvas.height !== size.h * dpr) {  // 크기가 그대로면 백버퍼를 지우지 않는다
+      canvas.width = size.w * dpr; canvas.height = size.h * dpr;
+      canvas.style.width = `${size.w}px`; canvas.style.height = `${size.h}px`;
+    }
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     let raf = 0;
     const nextLanes = new Set<string>();
@@ -119,16 +129,16 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
       nextLanes.clear();
       next?.mappingIds.forEach(id => nextLanes.add(id));
       drawHighway({
-        ctx, W: size.w, H: size.h, song, settings, events: live.events, spans,
+        ctx, W: size.w, H: size.h, song, settings: live.settings, events: live.events, spans,
         pos: visPos.current, now, holding: conductor.isHolding(), running: conductor.isRunning(),
-        statusOf: conductor.statusOf, fx, pressedKeys: live.pressedKeys, pressedMidiNotes: live.pressedMidiNotes,
-        layout, labels, nextEventBeat: next?.beat ?? null, nextLanes, combo: conductor.getCombo(), judge: conductor.getMode() === 'audio',
+        statusOf: id => conductor.statusOf(id), fx, pressedKeys: live.pressedKeys, pressedKeyMidis: live.pressedSets.keyMidis, pressedPads: live.pressedSets.pads,
+        layout, labels, nextEventBeat: next?.beat ?? null, nextLanes, combo: conductor.getCombo(), judge: conductor.isJudged(),
       });
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [conductor, size, song, settings, spans, layout, labels]);
+  }, [conductor, size, song, spans, layout, labels]);
 
   // ── 가사 ──
   const lyrics = song.chart?.lyrics || [];
@@ -169,15 +179,15 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
           <div><span className="text-slate-600">Tempo </span><span className={`text-lg tabular-nums ${Math.abs(snap.bpm - song.bpm) > 0.5 ? 'text-amber-300' : 'text-white'}`}>{snap.bpm.toFixed(1)}</span>
             <span className="text-slate-600 text-[9px]"> / {song.bpm}</span></div>
           {curSpan && <div><span className="text-slate-600">Section </span><span style={{ color: sectionColor(curSpan.section, curSpan.index) }}>{curSpan.section.name}</span><span className="text-slate-500"> {barInSection}/{curSpan.section.bars}</span></div>}
-          {snap.mode === 'audio' && <div title="히트 / 놓침 (음원 기준 판정)"><span className="text-emerald-400 tabular-nums">{snap.hits}</span><span className="text-slate-600"> / </span><span className="text-rose-400 tabular-nums">{snap.misses}</span></div>}
+          {snap.judged && <div title="히트 / 놓침 (음원 기준 판정)"><span className="text-emerald-400 tabular-nums">{snap.hits}</span><span className="text-slate-600"> / </span><span className="text-rose-400 tabular-nums">{snap.misses}</span></div>}
         </div>
 
         <div className="flex items-center gap-1.5 ml-auto flex-wrap">
           <Btn onClick={() => conductor.setMode(snap.mode === 'live' ? 'audio' : 'live')} active={snap.mode === 'audio'} title="LIVE: 내 연주가 시계 / AUDIO: 원곡 음원이 시계(연습)">{snap.mode === 'live' ? '🎧 Audio' : '🎹 Live'}</Btn>
           <span className="w-px h-6 bg-slate-800 mx-1" />
           {/* 레인 배치: 런치키 건반 / 컴퓨터 키보드 / 매핑 레인 */}
-          {([['device', '🎹 Launchkey'], ['keyboard', '⌨ QWERTY'], ['lanes', '▦ Lanes']] as const).map(([v, label]) => (
-            <Btn key={v} onClick={() => updateSettings({ layout: v })} active={settings.layout === v} title="노트가 떨어지는 바탕">{label}</Btn>
+          {LAYOUT_OPTIONS.map(o => (
+            <Btn key={o.value} onClick={() => updateSettings({ layout: o.value })} active={settings.layout === o.value} title="노트가 떨어지는 바탕">{o.label}</Btn>
           ))}
           <span className="w-px h-6 bg-slate-800 mx-1" />
           <Btn onClick={conductor.syncBar} title="탭 = 지금이 마디 첫 박 (Space / 패드 48)">⏱ Bar</Btn>
@@ -224,10 +234,6 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
       {/* ── 설정 패널 ── */}
       {showSettings && (
         <div className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-[10px] font-bold text-slate-300">
-          <label className="flex items-center gap-2">Layout
-            <select value={settings.layout} onChange={e => updateSettings({ layout: e.target.value as ChartSettings['layout'] })} className="bg-slate-800 rounded-lg px-2 py-1 outline-none">
-              <option value="device">Launchkey 건반/패드</option><option value="keyboard">컴퓨터 키보드 (QWERTY)</option><option value="lanes">매핑별 레인</option>
-            </select></label>
           <label className="flex items-center gap-2">Lookahead
             <input type="number" min={1} max={8} value={settings.lookaheadBars} onChange={e => updateSettings({ lookaheadBars: Math.max(1, parseInt(e.target.value) || 2) })} className="w-12 bg-slate-800 rounded-lg px-2 py-1 outline-none text-center" /> bars</label>
           <label className="flex items-center gap-2">Tempo follow

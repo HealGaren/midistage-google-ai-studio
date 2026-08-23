@@ -1,5 +1,5 @@
 import { Song, SongChart, InputMapping, SequenceMode } from '../types';
-import { DEFAULT_CHART_SETTINGS } from '../utils/chart';
+import { DEFAULT_CHART_SETTINGS, beatMs } from '../utils/chart';
 
 /** 6/8, 67bpm. 매핑 2개: 'a' = 코드 프리셋, 'j' = 6스텝 STEP 시퀀스. 패턴 1마디: a@0(6박), j@0..5 */
 export function makeSong(over: Partial<Song> = {}): Song {
@@ -27,8 +27,8 @@ export function makeSong(over: Partial<Song> = {}): Song {
   };
 }
 
-export const BEAT_MS = (60000 / 67) * 0.5; // 6/8 한 박(8분음표) ≈ 447.8ms
-export const settings = { ...DEFAULT_CHART_SETTINGS };
+export const BEAT_MS = beatMs(67, 8); // 6/8 한 박(8분음표) ≈ 447.8ms — 코어와 같은 함수
+export const settings: Readonly<typeof DEFAULT_CHART_SETTINGS> = Object.freeze({ ...DEFAULT_CHART_SETTINGS });
 
 /** 가짜 시계 */
 export function fakeClock(start = 1000) {

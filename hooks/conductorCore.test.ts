@@ -173,3 +173,38 @@ describe('ConductorCore — 음원 모드', () => {
     expect(core.getRawPos()).toBeCloseTo(1.05, 3);       // 판정만, 스냅 없음
   });
 });
+
+describe('ConductorCore — 리뷰에서 잡은 회귀', () => {
+  it('같은 곡의 BPM 을 바꾸면(편집/재로드) 라이브 시계도 따라간다', () => {
+    const { core, song } = setup();
+    core.restart();
+    core.setSong({ ...song, bpm: 90 });
+    expect(core.getBpm()).toBe(90);
+  });
+  it('음원 모드에서 곡을 바꿔도 새 곡은 전부 pending 으로 시작한다 (옛 음원 시간에 속지 않음)', () => {
+    const { core, events } = setup();
+    let t = 90_000;                                     // 옛 곡 90초 지점
+    core.attachAudio({ currentTimeMs: () => t, paused: () => false, play() {}, pause() {}, seekMs: ms => { t = ms; } });
+    core.setMode('audio');
+    const other = makeSong({ id: 'song-2' });
+    core.setSong(other);
+    core.setEvents(buildChartEvents(other));
+    expect(core.nextPending()?.beat).toBe(0);
+    expect(events.every(e => core.statusOf(e.id) === 'pending')).toBe(true);
+  });
+  it('Restart/seek 는 콤보와 카운터를 0 으로', () => {
+    const { core } = setup();
+    core.onPress('m-a'); core.onPress('m-j');
+    expect(core.getCombo()).toBe(2);
+    core.restart();
+    expect(core.getCombo()).toBe(0);
+    expect(core.snapshot().hits).toBe(0);
+  });
+  it('판정은 음원 모드에서만 의미가 있다', () => {
+    const { core } = setup();
+    expect(core.isJudged()).toBe(false);
+    core.attachAudio({ currentTimeMs: () => 0, paused: () => true, play() {}, pause() {}, seekMs() {} });
+    core.setMode('audio');
+    expect(core.isJudged()).toBe(true);
+  });
+});

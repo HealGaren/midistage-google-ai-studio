@@ -3,7 +3,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { ProjectData, GlobalMapping, GlobalActionType, CCMapping } from '../types';
 import { midiService } from '../webMidiService';
 import { v4 as uuidv4 } from 'uuid';
-import { listSavedProjects, loadSavedProject, saveProjectToFolder, deleteSavedProject, toFileName, SavedProjectMeta, rememberLastProject, forgetLastProject } from '../utils/projectStorage';
+import { listSavedProjects, loadSavedProject, saveProjectToFolder, deleteSavedProject, toFileName, SavedProjectMeta, rememberLastProject, forgetLastProject, getLastProjectName } from '../utils/projectStorage';
 import { useInputCapture, normalizeKey } from '../utils/inputCapture';
 import { UiPrefs } from '../utils/prefs';
 
@@ -75,7 +75,7 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject, prefs, on
     if (!window.confirm(`Delete "${name}" from the projects folder?`)) return;
     try {
       await deleteSavedProject(name);
-      if (localStorage.getItem('midistage.lastProjectFile') === name) forgetLastProject();
+      if (getLastProjectName() === name) forgetLastProject();
       setStorageStatus(`Deleted ${name}`);
       await refreshSavedProjects();
     } catch (err: any) {
@@ -474,6 +474,7 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject, prefs, on
                         <option value="CHART_TOGGLE_RUN">Chart: Run / Stop</option>
                         <option value="CHART_RESTART">Chart: Restart (to bar 1)</option>
                       </optgroup>
+                      <option value="TOGGLE_FOCUS">Focus mode (sidebar + fullscreen)</option>
                     </select>
                   </div>
                   {mapping.actionType === 'GOTO_SONG' && (

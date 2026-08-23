@@ -13,31 +13,8 @@ export type { ConductorSnapshot, ConductorMode, EventStatus, HitFx };
 // 반환하는 conductor 는 코어 인스턴스 그 자체(identity 고정) → 트리거 핸들러/리스너가 흔들리지 않는다.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface Conductor {
-  getDisplayPos: (now?: number) => number;
-  getRawPos: (now?: number) => number;
-  isHolding: () => boolean;
-  isRunning: () => boolean;
-  getBpm: () => number;
-  getMode: () => ConductorMode;
-  getCombo: () => number;
-  statusOf: (eventId: string) => EventStatus;
-  fx: { current: HitFx[] };
-  /** 매핑 키를 눌렀다. 엔진을 트리거하기 **전에** 부른다 */
-  onPress: (mappingId: string) => ChartEvent | null;
-  seekBeat: (beat: number, opts?: { keepRunning?: boolean }) => void;
-  seekSection: (index: number) => void;
-  syncBar: () => void; syncBeat: () => void;
-  nextNote: () => void; prevNote: () => void;
-  nextBar: () => void; prevBar: () => void;
-  nextSection: () => void; prevSection: () => void;
-  toggleRun: () => void; setRunning: (on: boolean) => void; restart: () => void;
-  setMode: (mode: ConductorMode) => void;
-  attachAudio: (el: HTMLAudioElement | null) => void;
-  setAutoStart: (on: boolean) => void;
-  nextPending: () => { beat: number; mappingIds: string[] } | null;
-  debug: () => Record<string, unknown>;
-}
+/** 코어 그 자체 + <audio> 엘리먼트 연결 헬퍼. 새 코어 메서드는 자동으로 노출된다 */
+export type Conductor = ConductorCore & { attachAudioElement: (el: HTMLAudioElement | null) => void };
 
 interface Args {
   song: Song;
@@ -63,10 +40,11 @@ export function useConductor({ song, events, settings, setSequenceStep }: Args):
   if (!coreRef.current) coreRef.current = new ConductorCore(song, events, settings, { setSequenceStep: (id, i) => stepRef.current(id, i) });
   const core = coreRef.current;
 
-  // 동기화 (렌더 중 바로 반영 — 이펙트를 기다리면 같은 렌더의 입력이 옛 설정을 본다)
+  // 동기화는 렌더 중 바로 (이펙트를 기다리면 커밋~플러시 사이에 틱/입력이 옛 곡을 본다).
+  // 셋 다 identity 가 같으면 no-op 이라 렌더마다 불러도 싸다. 순서: 곡 → 이벤트 (곡 교체 시 reset 뒤 전부 pending)
   core.setSettings(settings);
-  useEffect(() => { core.setSong(song); }, [core, song]);
-  useEffect(() => { core.setEvents(events); }, [core, events]);
+  core.setSong(song);
+  core.setEvents(events);
 
   // 틱 + 스냅샷
   const [snapshot, setSnapshot] = useState<ConductorSnapshot>(() => core.snapshot());
@@ -77,36 +55,15 @@ export function useConductor({ song, events, settings, setSequenceStep }: Args):
       setSnapshot(prev => (
         prev.bar === s.bar && Math.abs(prev.beatInBar - s.beatInBar) < 0.05 && prev.running === s.running && prev.holding === s.holding &&
         prev.mode === s.mode && Math.abs(prev.bpm - s.bpm) < 0.05 && prev.hits === s.hits && prev.misses === s.misses &&
-        prev.sectionIndex === s.sectionIndex && prev.nextEventBeat === s.nextEventBeat && prev.lastOffsetMs === s.lastOffsetMs &&
+        prev.sectionIndex === s.sectionIndex && prev.nextEventBeat === s.nextEventBeat && prev.judged === s.judged &&
         prev.nextMappingIds.length === s.nextMappingIds.length && prev.nextMappingIds.every((m, i) => m === s.nextMappingIds[i])
       ) ? prev : s);
     }, 100);
     return () => { clearInterval(tick); clearInterval(snap); };
   }, [core]);
 
-  const conductor = useMemo<Conductor>(() => ({
-    getDisplayPos: now => core.getDisplayPos(now),
-    getRawPos: now => core.getRawPos(now),
-    isHolding: () => core.isHolding(),
-    isRunning: () => core.isRunning(),
-    getBpm: () => core.getBpm(),
-    getMode: () => core.getMode(),
-    getCombo: () => core.getCombo(),
-    statusOf: id => core.statusOf(id),
-    fx: core.fx,
-    onPress: id => core.onPress(id),
-    seekBeat: (b, o) => core.seekBeat(b, o),
-    seekSection: i => core.seekSection(i),
-    syncBar: () => core.syncBar(), syncBeat: () => core.syncBeat(),
-    nextNote: () => core.nextNote(), prevNote: () => core.prevNote(),
-    nextBar: () => core.nextBar(), prevBar: () => core.prevBar(),
-    nextSection: () => core.nextSection(), prevSection: () => core.prevSection(),
-    toggleRun: () => core.toggleRun(), setRunning: on => core.setRunning(on), restart: () => core.restart(),
-    setMode: m => core.setMode(m),
-    attachAudio: el => core.attachAudio(el ? audioClock(el) : null),
-    setAutoStart: on => core.setAutoStart(on),
-    nextPending: () => core.nextPending(),
-    debug: () => core.debug(),
+  const conductor = useMemo<Conductor>(() => Object.assign(core, {
+    attachAudioElement: (el: HTMLAudioElement | null) => core.attachAudio(el ? audioClock(el) : null),
   }), [core]);
 
   return { conductor, snapshot };

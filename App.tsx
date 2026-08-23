@@ -97,16 +97,13 @@ const App: React.FC = () => {
   const [prefs, updatePrefs] = usePrefs();
   // 포커스 모드: 무대용. 사이드바를 숨기고 브라우저 전체화면. (브라우저 전체화면을 빠져나오면 같이 풀린다)
   const [focus, setFocus] = useState(false);
+  // 단일 진실 = document.fullscreenElement. 버튼/전역 액션은 요청만 하고 상태는 change 이벤트로 따라온다.
   const toggleFocus = useCallback(() => {
-    setFocus(f => {
-      const next = !f;
-      if (next) document.documentElement.requestFullscreen?.().catch(() => {});
-      else if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-      return next;
-    });
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => {});
   }, []);
   useEffect(() => {
-    const onChange = () => { if (!document.fullscreenElement) setFocus(false); };
+    const onChange = () => setFocus(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
@@ -179,7 +176,7 @@ const App: React.FC = () => {
   useEffect(() => { setLocalAudioUrl(null); }, [currentSong.id]);
   const audioFile = currentSong.chart?.audio?.fileName;
   const audioSrc = localAudioUrl || (audioFile ? audioUrl(audioFile) : undefined);
-  useEffect(() => { conductor.attachAudio(audioRef.current); }, [conductor, audioSrc]);
+  useEffect(() => { conductor.attachAudioElement(audioRef.current); }, [conductor, audioSrc]);
   const handleAudioSeeked = useCallback(() => {
     const a = audioRef.current;
     if (!a || conductor.getMode() !== 'audio') return;
@@ -262,8 +259,9 @@ const App: React.FC = () => {
       case 'CHART_PREV_SECTION': conductor.prevSection(); break;
       case 'CHART_TOGGLE_RUN': conductor.toggleRun(); break;
       case 'CHART_RESTART': conductor.restart(); break;
+      case 'TOGGLE_FOCUS': toggleFocus(); break;
     }
-  }, [project.songs, currentSongId, resetAllSequences, conductor]);
+  }, [project.songs, currentSongId, resetAllSequences, conductor, toggleFocus]);
 
   // Global Keyboard Triggers
   useEffect(() => {

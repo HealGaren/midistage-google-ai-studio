@@ -20,11 +20,24 @@ export const DEFAULT_PREFS: UiPrefs = {
 };
 
 export function loadPrefs(): UiPrefs {
+  const out: UiPrefs = { ...DEFAULT_PREFS };
   try {
+    // 예전 키 이관 (한 번만)
+    const legacyView = localStorage.getItem('midistage.liveView');
+    if (legacyView === 'device' || legacyView === 'grid') out.liveView = legacyView;
+    if (legacyView !== null) localStorage.removeItem('midistage.liveView');
     const raw = localStorage.getItem(KEY);
-    const legacyView = localStorage.getItem('midistage.liveView') as UiPrefs['liveView'] | null;
-    return { ...DEFAULT_PREFS, ...(legacyView ? { liveView: legacyView } : {}), ...(raw ? JSON.parse(raw) : {}) };
-  } catch { return DEFAULT_PREFS; }
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      // 알려진 키만, 타입이 맞을 때만 받는다 (손상/외부 값 방어)
+      (Object.keys(DEFAULT_PREFS) as (keyof UiPrefs)[]).forEach(k => {
+        const v = (parsed as Record<string, unknown>)[k];
+        if (k === 'liveView') { if (v === 'device' || v === 'grid') out.liveView = v; }
+        else if (typeof v === 'boolean') (out as unknown as Record<string, boolean>)[k] = v;
+      });
+    }
+  } catch { /* private mode 등 */ }
+  return out;
 }
 
 export function usePrefs(): [UiPrefs, (patch: Partial<UiPrefs>) => void] {

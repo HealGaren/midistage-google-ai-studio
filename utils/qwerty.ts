@@ -3,6 +3,7 @@
 // 키 이름은 normalizeKey 결과(소문자, 'space', 'arrowleft' …)와 같다.
 // ─────────────────────────────────────────────────────────────────────────────
 import { Rect } from './launchkey';
+import { displayKey } from './chart';
 
 export interface QwertyKey extends Rect { key: string; label: string; }
 
@@ -26,8 +27,8 @@ export function qwertyLayout(area: Rect): QwertyKey[] {
   ROWS.forEach((row, r) => {
     let x = area.x + row.indent * u;
     row.keys.forEach(spec => {
-      const [key, w, label] = typeof spec === 'string' ? [spec, 1, spec] : [spec[0], spec[1], spec[2] ?? spec[0]];
-      out.push({ key, label: label.length === 1 ? label.toUpperCase() : label, x: x + gap / 2, y: area.y + r * rowH + gap / 2, w: w * u - gap, h: rowH - gap });
+      const [key, w, label] = typeof spec === 'string' ? [spec, 1, undefined] : [spec[0], spec[1], spec[2]];
+      out.push({ key, label: label ?? displayKey(key), x: x + gap / 2, y: area.y + r * rowH + gap / 2, w: w * u - gap, h: rowH - gap });
       x += w * u;
     });
   });

@@ -1,5 +1,5 @@
 import { Song, ChartSettings } from '../types';
-import { ChartEvent, beatMs as beatMsOf, sectionSpans, sectionAtBeat, totalBeats, SectionSpan } from '../utils/chart';
+import { ChartEvent, beatMs as beatMsOf, sectionSpans, sectionAtBeat, totalBeats, SectionSpan, barOf, beatInBar } from '../utils/chart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 지휘자 코어 — React 와 DOM 에 의존하지 않는 순수 상태 기계.
@@ -23,7 +23,9 @@ export interface HitFx { time: number; mappingId: string; beat: number; kind: 'h
 export interface ConductorSnapshot {
   pos: number; bpm: number; running: boolean; holding: boolean; mode: ConductorMode;
   bar: number; beatInBar: number; sectionIndex: number; hits: number; misses: number;
-  nextEventBeat: number | null; nextMappingIds: string[]; lastOffsetMs: number | null;
+  nextEventBeat: number | null; nextMappingIds: string[];
+  /** 판정(히트/놓침/콤보)이 의미 있는 모드인가 — 음원이 기준일 때만 */
+  judged: boolean;
 }
 
 /** 음원 모드의 외부 시계. 브라우저에선 <audio>, 테스트에선 가짜 */
@@ -65,8 +67,7 @@ export class ConductorCore {
   private ptr = 0;
   private lastHit: { beat: number; time: number } | null = null;
   private tempoSamples: { beat: number; time: number }[] = [];
-  private counts = { hits: 0, misses: 0, combo: 0, bestCombo: 0 };
-  private lastOffset: number | null = null;
+  private counts = { hits: 0, misses: 0, combo: 0 };
 
   /** 렌더러가 그리는 최근 효과. 렌더러가 오래된 것을 잘라낸다 */
   readonly fx: { current: HitFx[] } = { current: [] };
@@ -85,36 +86,52 @@ export class ConductorCore {
 
   /** 곡이 바뀌면 완전히 리셋 */
   setSong(song: Song) {
-    const changed = !this.song || this.song.id !== song.id;
+    if (this.song === song) return;
+    const prev = this.song;
+    const changed = !prev || prev.id !== song.id;
     this.song = song;
     this.beatUnit = song.beatUnit || 4;
     this.bpb = song.beatsPerBar || 4;
     this.spans = sectionSpans(song);
     this.songEnd = totalBeats(song);
-    if (changed) this.reset();
-    else if (this.mode === 'live') { /* bpm 은 연주 중 추정값을 유지 */ }
+    if (changed) { this.reset(); return; }
+    // 같은 곡의 BPM 을 편집/재로드로 바꿨으면 라이브 시계도 새 값으로 (연주 중 추정값은 버린다)
+    if (this.mode === 'live' && prev.bpm !== song.bpm) {
+      const now = this.now();
+      const pos = this.getRawPos(now);
+      this.bpm = song.bpm; this.tempoSamples = [];
+      this.reanchor(pos, now);
+    }
   }
+
+  /** reset 직후 첫 setEvents 는 위치와 무관하게 전부 pending (음원 모드에서 옛 음원 시간을 보고 skipped 처리하지 않게) */
+  private fresh = true;
 
   private reset() {
     this.anchorBeat = 0; this.anchorTime = this.now(); this.bpm = this.song.bpm;
     this.running = false; this.holding = false;
     this.status = new Map(this.events.map(e => [e.id, 'pending']));
     this.ptr = 0; this.lastHit = null; this.tempoSamples = []; this.fx.current = [];
-    this.counts = { hits: 0, misses: 0, combo: 0, bestCombo: 0 }; this.lastOffset = null;
+    this.resetCounts();
+    this.fresh = true;
   }
+
+  private resetCounts() { this.counts = { hits: 0, misses: 0, combo: 0 }; }
 
   /**
    * 이벤트 목록 교체(차트 편집). 이미 있던 이벤트는 상태를 유지한다(기다리던 노트는 계속 기다림).
    * 새로 생긴 이벤트만 화면 위치보다 과거면 skipped.
    */
   setEvents(events: ChartEvent[]) {
+    if (this.events === events) return;
     const prev = this.status;
     const next = new Map<string, EventStatus>();
-    const pos = this.getDisplayPos();
+    const pos = this.fresh ? 0 : this.getDisplayPos();
     events.forEach(e => {
-      const old = prev.get(e.id);
+      const old = this.fresh ? undefined : prev.get(e.id);
       next.set(e.id, old || (e.beat < pos - 0.01 ? 'skipped' : 'pending'));
     });
+    this.fresh = false;
     this.status = next; this.events = events; this.ptr = 0; this.advancePtr();
   }
 
@@ -182,8 +199,7 @@ export class ConductorCore {
 
   private markHit(e: ChartEvent, offsetMs: number, now: number) {
     this.status.set(e.id, 'hit');
-    this.counts.hits++; this.counts.combo++; this.counts.bestCombo = Math.max(this.counts.bestCombo, this.counts.combo);
-    this.lastOffset = offsetMs;
+    this.counts.hits++; this.counts.combo++;
     this.fx.current.push({ time: now, mappingId: e.mappingId, beat: e.beat, kind: 'hit', offsetMs });
     if (this.settings.driveSequenceSteps && e.sequenceId && e.stepIndex !== undefined) this.setSequenceStep(e.sequenceId, e.stepIndex);
   }
@@ -299,7 +315,7 @@ export class ConductorCore {
     const target = Math.max(0, beat);
     this.events.forEach(e => this.status.set(e.id, e.beat < target - 0.02 ? 'skipped' : 'pending'));
     this.ptr = 0; this.advancePtr();
-    this.lastHit = null; this.tempoSamples = [];
+    this.lastHit = null; this.tempoSamples = []; this.resetCounts();
     this.reanchor(target, now);
     if (opts.keepRunning === false) this.running = false;
     if (this.mode === 'audio' && this.audio) {
@@ -386,6 +402,8 @@ export class ConductorCore {
   getMode() { return this.mode; }
   getBpm() { return this.mode === 'audio' ? (this.song.chart?.audio?.bpm || this.song.bpm) : this.bpm; }
   getCombo() { return this.counts.combo; }
+  /** LIVE 는 누른 순간이 곧 기준이라 판정이 무의미. 음원(외부 시계) 모드만 판정한다 */
+  isJudged() { return this.mode === 'audio'; }
   statusOf(id: string): EventStatus { return this.status.get(id) || 'pending'; }
 
   setRunning(on: boolean) {
@@ -421,9 +439,9 @@ export class ConductorCore {
     const next = this.nextPending();
     return {
       pos, bpm: this.getBpm(), running: this.isRunning(), holding: this.holding, mode: this.mode,
-      bar: Math.floor(pos / this.bpb), beatInBar: pos - Math.floor(pos / this.bpb) * this.bpb,
+      bar: barOf(pos, this.bpb), beatInBar: beatInBar(pos, this.bpb),
       sectionIndex: this.currentSectionIndex(pos), hits: this.counts.hits, misses: this.counts.misses,
-      nextEventBeat: next?.beat ?? null, nextMappingIds: next?.mappingIds ?? [], lastOffsetMs: this.lastOffset,
+      nextEventBeat: next?.beat ?? null, nextMappingIds: next?.mappingIds ?? [], judged: this.isJudged(),
     };
   }
 
@@ -432,7 +450,7 @@ export class ConductorCore {
     return {
       raw: this.getRawPos(now), match: this.getMatchPos(now), display: this.getDisplayPos(now), holding: this.holding, running: this.running,
       bpm: this.bpm, autoStart: this.autoStart, anchorBeat: this.anchorBeat, ptr: this.ptr, settings: this.settings, lastHit: this.lastHit,
-      samples: this.tempoSamples, holdTarget: this.holdTargetBeat(now), counts: this.counts,
+      samples: this.tempoSamples, holdTarget: this.holdTargetBeat(now), counts: this.counts, judged: this.isJudged(),
       window: this.events.slice(Math.max(0, this.ptr - 3), this.ptr + 4).map(e => `${e.beat}:${e.mappingId.slice(0, 4)}:${this.status.get(e.id)}`),
     };
   }
