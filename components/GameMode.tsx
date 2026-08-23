@@ -122,7 +122,7 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
         ctx, W: size.w, H: size.h, song, settings, events: live.events, spans,
         pos: visPos.current, now, holding: conductor.isHolding(), running: conductor.isRunning(),
         statusOf: conductor.statusOf, fx, pressedKeys: live.pressedKeys, pressedMidiNotes: live.pressedMidiNotes,
-        layout, labels, nextEventBeat: next?.beat ?? null, nextLanes, combo: conductor.getCombo(),
+        layout, labels, nextEventBeat: next?.beat ?? null, nextLanes, combo: conductor.getCombo(), judge: conductor.getMode() === 'audio',
       });
       raf = requestAnimationFrame(frame);
     };
@@ -169,7 +169,7 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
           <div><span className="text-slate-600">Tempo </span><span className={`text-lg tabular-nums ${Math.abs(snap.bpm - song.bpm) > 0.5 ? 'text-amber-300' : 'text-white'}`}>{snap.bpm.toFixed(1)}</span>
             <span className="text-slate-600 text-[9px]"> / {song.bpm}</span></div>
           {curSpan && <div><span className="text-slate-600">Section </span><span style={{ color: sectionColor(curSpan.section, curSpan.index) }}>{curSpan.section.name}</span><span className="text-slate-500"> {barInSection}/{curSpan.section.bars}</span></div>}
-          <div title="히트 / 놓침"><span className="text-emerald-400 tabular-nums">{snap.hits}</span><span className="text-slate-600"> / </span><span className="text-rose-400 tabular-nums">{snap.misses}</span></div>
+          {snap.mode === 'audio' && <div title="히트 / 놓침 (음원 기준 판정)"><span className="text-emerald-400 tabular-nums">{snap.hits}</span><span className="text-slate-600"> / </span><span className="text-rose-400 tabular-nums">{snap.misses}</span></div>}
         </div>
 
         <div className="flex items-center gap-1.5 ml-auto flex-wrap">

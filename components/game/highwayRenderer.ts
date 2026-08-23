@@ -50,6 +50,8 @@ export interface HighwayFrame {
   nextEventBeat: number | null;
   nextLanes: Set<string>;            // 다음 박에 눌러야 할 매핑 id
   combo: number;
+  /** 판정/콤보 표시 여부. LIVE 모드는 누른 순간이 곧 기준이라 의미가 없어 끈다(AUDIO 연습 모드만) */
+  judge: boolean;
 }
 
 export interface Geometry {
@@ -379,8 +381,8 @@ export function drawHighway(f: HighwayFrame) {
     }
   }
 
-  // ── 중앙 판정 + 콤보 (StepMania/osu! 처럼 시선이 가는 한 곳에 크게) ──
-  {
+  // ── 중앙 판정 + 콤보 (AUDIO 연습 모드에서만 — 게임처럼 음원 기준으로 판정할 때만 의미 있음) ──
+  if (f.judge) {
     const last = f.fx.length ? f.fx[f.fx.length - 1] : null;
     if (last && now - last.time < 520) {
       const age = now - last.time;
