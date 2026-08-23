@@ -188,8 +188,8 @@ export interface ChartSettings {
   holdForNotes: boolean;
   /** 화면에 미리 보여줄 길이(마디) */
   lookaheadBars: number;
-  /** 레인 배치: 런치키 건반/패드 모양 vs 매핑별 세로 레인 */
-  layout: 'device' | 'lanes';
+  /** 레인 배치: 런치키 건반/패드 · 컴퓨터 키보드(QWERTY) · 매핑별 세로 레인 */
+  layout: 'device' | 'keyboard' | 'lanes';
   /** 노트 안에 자동 연주되는 음(프리셋/스텝의 실제 음)을 같이 표시 */
   showInnerNotes: boolean;
   /** 차트가 시퀀스의 스텝 인덱스를 맞춘다(놓침/점프 후 복구). 끄면 엔진이 자기 순서대로만 진행 */

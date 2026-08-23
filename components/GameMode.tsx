@@ -175,6 +175,11 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
         <div className="flex items-center gap-1.5 ml-auto flex-wrap">
           <Btn onClick={() => conductor.setMode(snap.mode === 'live' ? 'audio' : 'live')} active={snap.mode === 'audio'} title="LIVE: 내 연주가 시계 / AUDIO: 원곡 음원이 시계(연습)">{snap.mode === 'live' ? '🎧 Audio' : '🎹 Live'}</Btn>
           <span className="w-px h-6 bg-slate-800 mx-1" />
+          {/* 레인 배치: 런치키 건반 / 컴퓨터 키보드 / 매핑 레인 */}
+          {([['device', '🎹 Launchkey'], ['keyboard', '⌨ QWERTY'], ['lanes', '▦ Lanes']] as const).map(([v, label]) => (
+            <Btn key={v} onClick={() => updateSettings({ layout: v })} active={settings.layout === v} title="노트가 떨어지는 바탕">{label}</Btn>
+          ))}
+          <span className="w-px h-6 bg-slate-800 mx-1" />
           <Btn onClick={conductor.syncBar} title="탭 = 지금이 마디 첫 박 (Space / 패드 48)">⏱ Bar</Btn>
           <Btn onClick={conductor.syncBeat} title="탭 = 지금이 박 (Enter)">⏱ Beat</Btn>
           <span className="w-px h-6 bg-slate-800 mx-1" />
@@ -221,7 +226,7 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
         <div className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-[10px] font-bold text-slate-300">
           <label className="flex items-center gap-2">Layout
             <select value={settings.layout} onChange={e => updateSettings({ layout: e.target.value as ChartSettings['layout'] })} className="bg-slate-800 rounded-lg px-2 py-1 outline-none">
-              <option value="device">Launchkey 건반/패드</option><option value="lanes">매핑별 레인</option>
+              <option value="device">Launchkey 건반/패드</option><option value="keyboard">컴퓨터 키보드 (QWERTY)</option><option value="lanes">매핑별 레인</option>
             </select></label>
           <label className="flex items-center gap-2">Lookahead
             <input type="number" min={1} max={8} value={settings.lookaheadBars} onChange={e => updateSettings({ lookaheadBars: Math.max(1, parseInt(e.target.value) || 2) })} className="w-12 bg-slate-800 rounded-lg px-2 py-1 outline-none text-center" /> bars</label>

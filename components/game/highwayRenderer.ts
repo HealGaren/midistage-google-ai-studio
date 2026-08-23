@@ -2,14 +2,16 @@ import { Song, ChartSettings, InputMapping } from '../../types';
 import { ChartEvent, SectionSpan, laneColor, keyLabel, mappingTargetName, sectionColor, noteName } from '../../utils/chart';
 import { highwayGeometry, KeyRect, PadRect, LK_PAD_CHANNEL, classifyMappingNotes, padOf } from '../../utils/launchkey';
 import { EventStatus, HitFx } from '../../hooks/useConductor';
+import { qwertyLayout, QwertyKey } from '../../utils/qwerty';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Game 모드 캔버스 그리기. 리듬게임 "하이웨이": 노트가 위에서 떨어져 아래 판정선에 닿는다.
 // 레퍼런스: Synthesia(건반 위로 떨어지는 노트), osu!mania/Guitar Hero(레인·판정선·히트 이펙트).
 //
-// 레이아웃 두 가지:
+// 레이아웃 세 가지:
 //   device : 하단에 Launchkey 건반+패드를 그리고, 노트가 실제 눌러야 할 키 위로 떨어진다.
 //            여러 키 중 아무거나 눌러도 되는 매핑은 그 키들을 덮는 넓은 노트 하나.
+//   keyboard: 하단에 US QWERTY 자판을 그리고, 매핑된 글쇠 위로 노트가 떨어진다.
 //   lanes  : 매핑마다 세로 레인 하나.
 // 세로축은 beat. pxPerBeat 는 "미리 보여줄 마디 수"로 정해진다. 템포가 변해도 모양은 그대로.
 //
@@ -53,6 +55,7 @@ export interface Geometry {
   gutterL: number; gutterR: number; panelH: number; hitY: number;
   hwX: number; hwW: number;
   whiteKeys: KeyRect[]; blackKeys: KeyRect[]; pads: PadRect[]; hasPads: boolean; padArea: { x: number; w: number };
+  qwerty: QwertyKey[];
 }
 
 export interface Layout {
@@ -61,6 +64,7 @@ export interface Layout {
   laneById: Map<string, LaneBox>;
   laneByKeyMidi: Map<number, LaneBox>;
   laneByPadMidi: Map<number, LaneBox>;
+  laneByQwerty: Map<string, LaneBox>;
 }
 
 export const GUTTER_L = 150;
@@ -70,7 +74,7 @@ export const GUTTER_R = 130;
 export function computeLayout(song: Song, laneMappings: InputMapping[], W: number, H: number, settings: ChartSettings): Layout {
   const gutterL = GUTTER_L, gutterR = GUTTER_R;
   const hwX = gutterL, hwW = Math.max(100, W - gutterL - gutterR);
-  const panelH = settings.layout === 'device' ? Math.max(90, Math.min(150, H * 0.17)) : 64;
+  const panelH = settings.layout === 'device' ? Math.max(90, Math.min(150, H * 0.17)) : settings.layout === 'keyboard' ? Math.max(120, Math.min(200, H * 0.24)) : 64;
   const hitY = H - panelH;
   const lanes: LaneBox[] = [];
   const mk = (m: InputMapping, x: number, w: number, kind: LaneBox['kind'], keyMidis: number[], padMidis: number[]): LaneBox => {
@@ -104,7 +108,22 @@ export function computeLayout(song: Song, laneMappings: InputMapping[], W: numbe
       }
     });
     extras.forEach((c, i) => lanes.push(mk(c.m, hwX + hwW - extraW * (extras.length - i), extraW - 4, 'extra', [], [])));
-    geometry = { gutterL, gutterR, panelH, hitY, hwX, hwW, whiteKeys: keys.filter(k => !k.black), blackKeys: keys.filter(k => k.black), pads, hasPads, padArea };
+    geometry = { gutterL, gutterR, panelH, hitY, hwX, hwW, whiteKeys: keys.filter(k => !k.black), blackKeys: keys.filter(k => k.black), pads, hasPads, padArea, qwerty: [] };
+  } else if (settings.layout === 'keyboard') {
+    // 컴퓨터 키보드: 매핑된 글쇠들을 덮는 x 범위가 레인. 글쇠가 없는 매핑은 오른쪽 extra 레인
+    const qwerty = qwertyLayout({ x: hwX, y: hitY + 4, w: hwW, h: panelH - 8 });
+    const byKey = new Map(qwerty.map(k => [k.key, k]));
+    const extras: InputMapping[] = [];
+    laneMappings.forEach(m => {
+      const c = classifyMappingNotes(m);
+      const ks = keyLabel(m).toLowerCase().split(' ').map(k => byKey.get(k)).filter((k): k is QwertyKey => !!k);
+      if (!ks.length) { extras.push(m); return; }
+      const x0 = Math.min(...ks.map(k => k.x)), x1 = Math.max(...ks.map(k => k.x + k.w));
+      lanes.push(mk(m, x0, x1 - x0, 'keys', c.keyMidis, c.padMidis));
+    });
+    const extraW = extras.length ? Math.min(70, hwW * 0.12) : 0;
+    extras.forEach((m, i) => { const c = classifyMappingNotes(m); lanes.push(mk(m, hwX + hwW - extraW * (extras.length - i), extraW - 4, 'extra', c.keyMidis, c.padMidis)); });
+    geometry = { gutterL, gutterR, panelH, hitY, hwX, hwW, whiteKeys: [], blackKeys: [], pads: [], hasPads: false, padArea: { x: 0, w: 0 }, qwerty };
   } else {
     const n = Math.max(1, laneMappings.length);
     const gap = 6;
@@ -113,14 +132,15 @@ export function computeLayout(song: Song, laneMappings: InputMapping[], W: numbe
       const c = classifyMappingNotes(m);
       lanes.push(mk(m, hwX + i * (lw + gap), lw, 'extra', c.keyMidis, c.padMidis));
     });
-    geometry = { gutterL, gutterR, panelH, hitY, hwX, hwW, whiteKeys: [], blackKeys: [], pads: [], hasPads: false, padArea: { x: 0, w: 0 } };
+    geometry = { gutterL, gutterR, panelH, hitY, hwX, hwW, whiteKeys: [], blackKeys: [], pads: [], hasPads: false, padArea: { x: 0, w: 0 }, qwerty: [] };
   }
 
   const laneById = new Map(lanes.map(l => [l.mappingId, l]));
   const laneByKeyMidi = new Map<number, LaneBox>();
   const laneByPadMidi = new Map<number, LaneBox>();
-  lanes.forEach(l => { l.keyMidis.forEach(n => laneByKeyMidi.set(n, l)); l.padMidis.forEach(n => laneByPadMidi.set(n, l)); });
-  return { lanes, geometry, laneById, laneByKeyMidi, laneByPadMidi };
+  const laneByQwerty = new Map<string, LaneBox>();
+  lanes.forEach(l => { l.keyMidis.forEach(n => laneByKeyMidi.set(n, l)); l.padMidis.forEach(n => laneByPadMidi.set(n, l)); l.keyTokens.forEach(k => laneByQwerty.set(k, l)); });
+  return { lanes, geometry, laneById, laneByKeyMidi, laneByPadMidi, laneByQwerty };
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -384,6 +404,15 @@ export function drawHighway(f: HighwayFrame) {
         { idleFill: l ? 'tint' : '#111827', idleStroke: 'lane', radius: 5, label: l?.keyTokens[0]?.toUpperCase() || '', labelY: p.y + p.h / 2 + 4, labelColor: pressed ? '#0f172a' : '#f8fafc' });
       ctx.fillStyle = pressed ? '#0f172a' : '#64748b'; ctx.font = '800 8px ui-sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(String(p.midi), p.x + 4, p.y + 8);
+    }
+  }
+  if (settings.layout === 'keyboard') {
+    for (const k of g.qwerty) {
+      const l = layout.laneByQwerty.get(k.key);
+      const pressed = f.pressedKeys.has(k.key) || (!!l && (l.keyMidis.some(m => pressedKeysMidi.has(m)) || l.padMidis.some(m => pressedPads.has(m))));
+      drawCap(ctx, k, l, pressed, !!l && nextLanes.has(l.mappingId), blink,
+        { idleFill: l ? 'tint' : '#1f2937', idleStroke: l ? 'lane' : '#334155', radius: 5, label: l ? k.label : undefined, labelY: k.y + k.h / 2 + 4, labelColor: pressed ? '#0f172a' : '#f8fafc' });
+      if (!l) { ctx.fillStyle = '#64748b'; ctx.font = '800 10px ui-sans-serif'; ctx.textAlign = 'center'; ctx.fillText(k.label, k.x + k.w / 2, k.y + k.h / 2 + 4); }
     }
   }
   // 키캡(extra 레인 및 lanes 레이아웃)
