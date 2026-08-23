@@ -1,4 +1,4 @@
-import { Song, NotePreset, NoteItem, Sequence, SequenceItem, SequenceMode, InputMapping, Scene, CCMapping } from '../types';
+import { Song, NotePreset, NoteItem, Sequence, SequenceItem, SequenceMode, InputMapping, Scene, CCMapping, SongChart } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Helper to convert note name (e.g., "C#4") to MIDI number
@@ -341,10 +341,33 @@ export function importSongFromJson(jsonString: string): Song {
       name: s.name,
       mappingIds: (s.mappingIds || []).map((mid: string) => getNewId(mid))
     })),
-    activeSceneId: getNewId(parsed.activeSceneId)
+    activeSceneId: getNewId(parsed.activeSceneId),
+    // 박자표와 Game 차트. 차트는 매핑/패턴 id 를 참조하므로 같은 id 맵으로 다시 이어 준다.
+    ...(parsed.beatsPerBar ? { beatsPerBar: parsed.beatsPerBar } : {}),
+    ...(parsed.beatUnit ? { beatUnit: parsed.beatUnit } : {}),
+    ...(parsed.chart ? { chart: remapChart(parsed.chart as SongChart, getNewId) } : {}),
   };
 
   return newSong;
+}
+
+function remapChart(chart: SongChart, getNewId: (id: string) => string): SongChart {
+  return {
+    sections: (chart.sections || []).map(s => ({ ...s, id: getNewId(s.id), patternId: s.patternId ? getNewId(s.patternId) : null })),
+    patterns: (chart.patterns || []).map(p => ({
+      ...p,
+      id: getNewId(p.id),
+      hits: (p.hits || []).map(h => ({ ...h, mappingId: getNewId(h.mappingId) })),
+    })),
+    lyrics: (chart.lyrics || []).map(l => ({ ...l, id: getNewId(l.id) })),
+    audio: chart.audio,
+    settings: chart.settings,
+    takes: (chart.takes || []).map(t => ({
+      ...t,
+      id: getNewId(t.id),
+      events: (t.events || []).map(e => ({ ...e, mappingId: getNewId(e.mappingId) })),
+    })),
+  };
 }
 
 // Download song as JSON file

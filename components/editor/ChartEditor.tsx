@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Song, SongChart, ChartPattern, ChartSection, ChartHit, ChartTake, InputMapping } from '../../types';
-import { emptyChart, newPattern, newSection, parseLyrics, serializeLyrics, sectionColor, SECTION_COLORS, laneColor, mappingKeys, mappingTargetName, totalBars, beatMs as beatMsOf } from '../../utils/chart';
-import { listAudioFiles, uploadAudioFile, SavedAudioMeta } from '../../utils/projectStorage';
+import { emptyChart, newPattern, newSection, parseLyrics, serializeLyrics, sectionColor, SECTION_COLORS, laneColor, keyLabel as keyLabelOf, mappingTargetName, totalBars, beatMs as beatMsOf } from '../../utils/chart';
+import { listAudioFiles, uploadAudioFile, SavedAudioMeta, AUDIO_EXTENSIONS } from '../../utils/projectStorage';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Chart 편집: 송폼(섹션) · 패턴(마디 격자) · 가사 · 음원 · 테이크 → 패턴.
@@ -97,7 +97,7 @@ export const ChartEditor: React.FC<Props> = ({ song, onUpdateSong }) => {
     setSelectedPatternId(p.id);
   };
 
-  const keyLabel = (m: InputMapping) => mappingKeys(m).map(k => k.length === 1 ? k.toUpperCase() : k).join(' ') || '—';
+  const keyLabel = (m: InputMapping) => keyLabelOf(m) || '—';
   const cols = pattern ? pattern.bars * bpb * subdiv : 0;
 
   return (
@@ -252,7 +252,7 @@ export const ChartEditor: React.FC<Props> = ({ song, onUpdateSong }) => {
                     {chart.audio?.fileName && !audioFiles?.some(f => f.name === chart.audio?.fileName) && <option value={chart.audio.fileName}>{chart.audio.fileName} (파일 없음)</option>}
                   </select>
                   <label className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase cursor-pointer">
-                    Upload <input type="file" accept="audio/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(f); }} />
+                    Upload <input type="file" accept={AUDIO_EXTENSIONS.join(',')} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onUpload(f); }} />
                   </label>
                 </div>
                 {audioFiles === null && <p className="text-amber-400">dev 서버(/api/audio) 에 닿지 않습니다. `pnpm dev` 로 실행해야 저장됩니다. (Game 탭에서 세션용으로 열 수는 있음)</p>}

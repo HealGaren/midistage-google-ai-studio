@@ -557,4 +557,4 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject }) => {
   );
 };
 
-export default Settings;
+export default React.memo(Settings);

@@ -4,22 +4,43 @@ import { defineConfig, loadEnv, type Plugin, type Connect } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const PROJECTS_DIR = path.resolve(__dirname, 'projects');
+const AUDIO_DIR = path.join(PROJECTS_DIR, 'audio');
 
-// Dev-only API that lists/reads/writes/deletes project JSON files in the
-// gitignored ./projects folder, so the app can load & save locally without
-// going through the browser download/upload dialog.
-//   GET    /api/projects            -> [{ name, size, mtime }]
-//   GET    /api/projects/<file>     -> file contents (the saved ProjectData)
-//   PUT    /api/projects/<file>     -> write body to <file>
-//   DELETE /api/projects/<file>     -> remove <file>
-function localProjectsApi(): Plugin {
-  const ensureDir = () => { if (!fs.existsSync(PROJECTS_DIR)) fs.mkdirSync(PROJECTS_DIR, { recursive: true }); };
+// ─────────────────────────────────────────────────────────────────────────────
+// Dev-only file APIs backed by the gitignored ./projects folder, so the app can
+// load & save locally without the browser download/upload dialog.
+//
+//   /api/projects            JSON project files   (validated, pretty-printed)
+//   /api/audio               practice audio files (streamed, Range requests for <audio> seeking)
+//
+// Both routes share one handler factory:
+//   GET    <prefix>           -> [{ name, size, mtime }]
+//   GET    <prefix>/<file>    -> file contents
+//   PUT    <prefix>/<file>    -> write body to <file>
+//   DELETE <prefix>/<file>
+// Only plain `<name>.<ext>` basenames with an allowed extension are accepted
+// (blocks path traversal; malformed percent-encoding is a 400, not a crash).
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // Reject anything that isn't a plain `<name>.json` basename (blocks path traversal).
+interface FileApiOptions {
+  name: string;
+  prefix: string;
+  dir: string;
+  allowedExts: string[];
+  /** JSON mode: buffer, parse, validate, pretty-print. Otherwise stream bytes as-is. */
+  json?: { validate: (parsed: any) => string | null };
+  mimeOf?: (ext: string) => string;
+}
+
+function localFileApi(o: FileApiOptions): Plugin {
+  const ensureDir = () => { if (!fs.existsSync(o.dir)) fs.mkdirSync(o.dir, { recursive: true }); };
+
   const safeName = (raw: string): string | null => {
-    const decoded = decodeURIComponent(raw);
+    let decoded: string;
+    try { decoded = decodeURIComponent(raw); } catch { return null; }
     const base = path.basename(decoded);
-    if (base !== decoded || !base.toLowerCase().endsWith('.json') || base.startsWith('.')) return null;
+    const ext = path.extname(base).toLowerCase();
+    if (base !== decoded || base.startsWith('.') || !o.allowedExts.includes(ext)) return null;
     return base;
   };
 
@@ -31,145 +52,83 @@ function localProjectsApi(): Plugin {
 
   const handler: Connect.NextHandleFunction = (req, res, next) => {
     const url = req.url || '';
-    if (!url.startsWith('/api/projects')) return next();
-
+    if (url !== o.prefix && !url.startsWith(o.prefix + '/') && !url.startsWith(o.prefix + '?')) return next();
     ensureDir();
-    const rest = url.split('?')[0].slice('/api/projects'.length).replace(/^\//, '');
+    const rest = url.split('?')[0].slice(o.prefix.length).replace(/^\//, '');
 
-    // Collection: list saved projects
+    // Collection
     if (rest === '') {
       if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
-      const files = fs.readdirSync(PROJECTS_DIR)
-        .filter(f => f.toLowerCase().endsWith('.json'))
-        .map(name => {
-          const stat = fs.statSync(path.join(PROJECTS_DIR, name));
-          return { name, size: stat.size, mtime: stat.mtimeMs };
+      fs.promises.readdir(o.dir)
+        .then(async names => {
+          const files = await Promise.all(names
+            .filter(f => o.allowedExts.includes(path.extname(f).toLowerCase()))
+            .map(async name => { const st = await fs.promises.stat(path.join(o.dir, name)); return { name, size: st.size, mtime: st.mtimeMs }; }));
+          sendJson(res, 200, files.sort((a, b) => b.mtime - a.mtime));
         })
-        .sort((a, b) => b.mtime - a.mtime);
-      return sendJson(res, 200, files);
-    }
-
-    // Item: read / write / delete a single project file
-    const name = safeName(rest);
-    if (!name) return sendJson(res, 400, { error: 'Invalid file name' });
-    const filePath = path.join(PROJECTS_DIR, name);
-
-    if (req.method === 'GET') {
-      if (!fs.existsSync(filePath)) return sendJson(res, 404, { error: 'Not found' });
-      res.statusCode = 200;
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      return res.end(fs.readFileSync(filePath, 'utf-8'));
-    }
-
-    if (req.method === 'PUT' || req.method === 'POST') {
-      const chunks: Buffer[] = [];
-      req.on('data', c => chunks.push(c as Buffer));
-      req.on('end', () => {
-        const body = Buffer.concat(chunks).toString('utf-8');
-        try {
-          const parsed = JSON.parse(body);
-          if (!parsed || !Array.isArray(parsed.songs)) {
-            return sendJson(res, 400, { error: 'Not a valid project (missing songs array)' });
-          }
-          fs.writeFileSync(filePath, JSON.stringify(parsed, null, 2), 'utf-8');
-          return sendJson(res, 200, { ok: true, name });
-        } catch {
-          return sendJson(res, 400, { error: 'Invalid JSON' });
-        }
-      });
+        .catch(err => sendJson(res, 500, { error: String(err) }));
       return;
     }
 
-    if (req.method === 'DELETE') {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      return sendJson(res, 200, { ok: true });
-    }
-
-    return sendJson(res, 405, { error: 'Method not allowed' });
-  };
-
-  return {
-    name: 'local-projects-api',
-    configureServer(server) { server.middlewares.use(handler); },
-    configurePreviewServer(server) { server.middlewares.use(handler); },
-  };
-}
-
-const AUDIO_DIR = path.join(PROJECTS_DIR, 'audio');
-const AUDIO_EXT = ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac'];
-const AUDIO_MIME: Record<string, string> = {
-  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.flac': 'audio/flac',
-};
-
-// Dev-only API for practice audio (Game 모드의 원곡 재생용). Files live in
-// gitignored ./projects/audio so they travel with the saved projects.
-//   GET    /api/audio            -> [{ name, size }]
-//   GET    /api/audio/<file>     -> the file (supports Range so <audio> can seek)
-//   PUT    /api/audio/<file>     -> write raw body to <file>
-//   DELETE /api/audio/<file>
-function localAudioApi(): Plugin {
-  const ensureDir = () => { if (!fs.existsSync(AUDIO_DIR)) fs.mkdirSync(AUDIO_DIR, { recursive: true }); };
-  const safeName = (raw: string): string | null => {
-    const decoded = decodeURIComponent(raw);
-    const base = path.basename(decoded);
-    const ext = path.extname(base).toLowerCase();
-    if (base !== decoded || base.startsWith('.') || !AUDIO_EXT.includes(ext)) return null;
-    return base;
-  };
-  const sendJson = (res: any, status: number, body: unknown) => {
-    res.statusCode = status;
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.end(JSON.stringify(body));
-  };
-
-  const handler: Connect.NextHandleFunction = (req, res, next) => {
-    const url = req.url || '';
-    if (!url.startsWith('/api/audio')) return next();
-    ensureDir();
-    const rest = url.split('?')[0].slice('/api/audio'.length).replace(/^\//, '');
-
-    if (rest === '') {
-      if (req.method !== 'GET') return sendJson(res, 405, { error: 'Method not allowed' });
-      const files = fs.readdirSync(AUDIO_DIR)
-        .filter(f => AUDIO_EXT.includes(path.extname(f).toLowerCase()))
-        .map(name => ({ name, size: fs.statSync(path.join(AUDIO_DIR, name)).size }));
-      return sendJson(res, 200, files);
-    }
-
     const name = safeName(rest);
-    if (!name) return sendJson(res, 400, { error: 'Invalid audio file name' });
-    const filePath = path.join(AUDIO_DIR, name);
+    if (!name) return sendJson(res, 400, { error: 'Invalid file name' });
+    const filePath = path.join(o.dir, name);
 
     if (req.method === 'GET') {
       if (!fs.existsSync(filePath)) return sendJson(res, 404, { error: 'Not found' });
-      const stat = fs.statSync(filePath);
-      const mime = AUDIO_MIME[path.extname(name).toLowerCase()] || 'application/octet-stream';
+      if (o.json) {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        return res.end(fs.readFileSync(filePath, 'utf-8'));
+      }
+      const size = fs.statSync(filePath).size;
+      const mime = o.mimeOf?.(path.extname(name).toLowerCase()) || 'application/octet-stream';
       res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Content-Type', mime);
-      const range = req.headers.range;
-      if (range) {
-        const m = /bytes=(\d*)-(\d*)/.exec(range);
-        const start = m && m[1] ? parseInt(m[1], 10) : 0;
-        const end = m && m[2] ? Math.min(parseInt(m[2], 10), stat.size - 1) : stat.size - 1;
+      const range = typeof req.headers.range === 'string' ? req.headers.range : undefined;
+      if (range && size > 0) {
+        // bytes=a-b | bytes=a- | bytes=-n  (RFC 7233); anything unsatisfiable → 416
+        const m = /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+        let start: number, end: number;
+        if (!m || (m[1] === '' && m[2] === '')) { res.statusCode = 416; res.setHeader('Content-Range', `bytes */${size}`); return res.end(); }
+        if (m[1] === '') { const n = Math.min(parseInt(m[2], 10), size); start = size - n; end = size - 1; }
+        else { start = parseInt(m[1], 10); end = m[2] === '' ? size - 1 : Math.min(parseInt(m[2], 10), size - 1); }
+        if (start > end || start >= size) { res.statusCode = 416; res.setHeader('Content-Range', `bytes */${size}`); return res.end(); }
         res.statusCode = 206;
-        res.setHeader('Content-Range', `bytes ${start}-${end}/${stat.size}`);
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
         res.setHeader('Content-Length', String(end - start + 1));
-        fs.createReadStream(filePath, { start, end }).pipe(res);
+        fs.createReadStream(filePath, { start, end }).on('error', () => res.end()).pipe(res);
       } else {
         res.statusCode = 200;
-        res.setHeader('Content-Length', String(stat.size));
-        fs.createReadStream(filePath).pipe(res);
+        res.setHeader('Content-Length', String(size));
+        fs.createReadStream(filePath).on('error', () => res.end()).pipe(res);
       }
       return;
     }
 
     if (req.method === 'PUT' || req.method === 'POST') {
-      const chunks: Buffer[] = [];
-      req.on('data', c => chunks.push(c as Buffer));
-      req.on('end', () => {
-        fs.writeFileSync(filePath, Buffer.concat(chunks));
-        sendJson(res, 200, { ok: true, name });
-      });
+      if (o.json) {
+        const chunks: Buffer[] = [];
+        req.on('data', c => chunks.push(c as Buffer));
+        req.on('end', () => {
+          try {
+            const parsed = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+            const problem = o.json!.validate(parsed);
+            if (problem) return sendJson(res, 400, { error: problem });
+            fs.writeFileSync(filePath, JSON.stringify(parsed, null, 2), 'utf-8');
+            return sendJson(res, 200, { ok: true, name });
+          } catch {
+            return sendJson(res, 400, { error: 'Invalid JSON' });
+          }
+        });
+        return;
+      }
+      // Binary: stream straight to disk (a WAV can be tens of MB — don't hold it in memory)
+      const tmp = filePath + '.uploading';
+      const out = fs.createWriteStream(tmp);
+      req.pipe(out);
+      out.on('finish', () => { fs.renameSync(tmp, filePath); sendJson(res, 200, { ok: true, name }); });
+      out.on('error', err => { try { fs.unlinkSync(tmp); } catch { /* noop */ } sendJson(res, 500, { error: String(err) }); });
       return;
     }
 
@@ -177,15 +136,35 @@ function localAudioApi(): Plugin {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       return sendJson(res, 200, { ok: true });
     }
+
     return sendJson(res, 405, { error: 'Method not allowed' });
   };
 
   return {
-    name: 'local-audio-api',
+    name: o.name,
     configureServer(server) { server.middlewares.use(handler); },
     configurePreviewServer(server) { server.middlewares.use(handler); },
   };
 }
+
+const localProjectsApi = () => localFileApi({
+  name: 'local-projects-api',
+  prefix: '/api/projects',
+  dir: PROJECTS_DIR,
+  allowedExts: ['.json'],
+  json: { validate: parsed => (!parsed || !Array.isArray(parsed.songs)) ? 'Not a valid project (missing songs array)' : null },
+});
+
+const AUDIO_MIME: Record<string, string> = {
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.flac': 'audio/flac',
+};
+const localAudioApi = () => localFileApi({
+  name: 'local-audio-api',
+  prefix: '/api/audio',
+  dir: AUDIO_DIR,
+  allowedExts: Object.keys(AUDIO_MIME),
+  mimeOf: ext => AUDIO_MIME[ext],
+});
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');

@@ -1,14 +1,14 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Song, InputMapping } from '../types';
-import { deviceLayout, LK_PAD_CHANNEL, LK_KEY_LOW, LK_KEY_HIGH, padOf } from '../utils/launchkey';
-import { laneColor, mappingKeys, mappingMidiNotes, mappingTargetName, noteName } from '../utils/chart';
+import { deviceLayout, LK_PAD_CHANNEL, classifyMappingNotes } from '../utils/launchkey';
+import { laneColor, keyLabel, mappingKeys, mappingTargetName, noteName, activeMappingsFor } from '../utils/chart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Launchkey Mini MK3 모양 그대로 "무엇이 눌려 있고 무엇을 눌러야 하는지" 보여준다.
 //  - 매핑된 키/패드는 그 매핑의 레인 색으로 칠하고 키보드 글쇠를 적는다
 //  - 눌린 키/패드는 밝게, 다음에 눌러야 할 것(expected)은 테두리가 깜빡인다
 //  - 노브 8개는 CC 21~28 현재값
-// 마우스로 키/패드를 눌러도 매핑이 트리거된다(onTrigger 가 있을 때).
+// 마우스로 키/패드를 눌러도 매핑이 트리거된다(onTrigger 가 있을 때). 누른 채 밖으로 나가도 뗀다.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -24,36 +24,26 @@ interface Props {
 
 interface Placement { keys: Map<number, InputMapping[]>; pads: Map<number, InputMapping[]>; unplaced: InputMapping[]; }
 
-/** 매핑이 기기의 어느 키/패드에 해당하는지. 채널 10 = 패드, 그 외 = 건반 */
+/** 현재 씬의 매핑이 기기의 어느 키/패드에 해당하는지 (Game 하이웨이와 같은 분류 규칙) */
 export function placeMappings(song: Song): Placement {
   const keys = new Map<number, InputMapping[]>();
   const pads = new Map<number, InputMapping[]>();
   const unplaced: InputMapping[] = [];
-  const activeScene = song.scenes.find(s => s.id === song.activeSceneId);
-  song.mappings.forEach(m => {
-    if (!m.isEnabled) return;
-    if (!(m.scope === 'global' || activeScene?.mappingIds.includes(m.id))) return;
-    const notes = mappingMidiNotes(m);
-    let placed = false;
-    notes.forEach(n => {
-      const toPad = m.midiChannel === LK_PAD_CHANNEL || (m.midiChannel === 0 && padOf(n) && (n < LK_KEY_LOW || n > LK_KEY_HIGH));
-      if (toPad) {
-        if (padOf(n)) { pads.set(n, [...(pads.get(n) || []), m]); placed = true; }
-      } else if (n >= LK_KEY_LOW && n <= LK_KEY_HIGH) {
-        keys.set(n, [...(keys.get(n) || []), m]); placed = true;
-      }
-    });
-    if (!placed) unplaced.push(m);
+  activeMappingsFor(song).forEach(m => {
+    const c = classifyMappingNotes(m);
+    c.keyMidis.forEach(n => keys.set(n, [...(keys.get(n) || []), m]));
+    c.padMidis.forEach(n => pads.set(n, [...(pads.get(n) || []), m]));
+    if (!c.keyMidis.length && !c.padMidis.length) unplaced.push(m);
   });
   return { keys, pads, unplaced };
 }
-
-const keyLabel = (m: InputMapping) => mappingKeys(m).map(k => k.length === 1 ? k.toUpperCase() : k).join(' ');
 
 export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiNotes, ccStates, expectedMappingIds, onTrigger, className, showLegend = true }) => {
   const W = 1000;
   const layout = useMemo(() => deviceLayout(W), []);
   const placement = useMemo(() => placeMappings(song), [song]);
+  // 마우스로 누르고 있는 매핑들 — 키보드/MIDI 눌림과 별개로 추적해야 드래그해 나가도 뗄 수 있다
+  const mouseHeld = useRef<InputMapping[] | null>(null);
 
   const pressedPitches = useMemo(() => {
     const keys = new Set<number>(); const pads = new Set<number>();
@@ -67,13 +57,27 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
   const isKeyPressed = (m: InputMapping) => mappingKeys(m).some(k => pressedKeys.has(k.toLowerCase()));
   const isExpected = (ms: InputMapping[] | undefined) => !!expectedMappingIds && !!ms?.some(m => expectedMappingIds.has(m.id));
 
-  const handle = (ms: InputMapping[] | undefined, release: boolean) => {
-    if (!onTrigger || !ms) return;
-    ms.forEach(m => onTrigger(m, release));
+  const press = (ms: InputMapping[] | undefined) => {
+    if (!onTrigger || !ms?.length) return;
+    releaseHeld();
+    mouseHeld.current = ms;
+    ms.forEach(m => onTrigger(m, false));
   };
+  const releaseHeld = () => {
+    const held = mouseHeld.current;
+    if (!onTrigger || !held) return;
+    mouseHeld.current = null;
+    held.forEach(m => onTrigger(m, true));
+  };
+  const handlers = (ms: InputMapping[] | undefined) => ({
+    onMouseDown: () => press(ms),
+    onMouseUp: releaseHeld,
+    onMouseLeave: releaseHeld,
+    style: { cursor: ms?.length ? 'pointer' : 'default' } as React.CSSProperties,
+  });
 
   return (
-    <div className={className}>
+    <div className={className} onMouseUp={releaseHeld}>
       <svg viewBox={`0 0 ${W} ${layout.height}`} className="w-full h-auto select-none" style={{ maxHeight: 420 }}>
         <defs>
           <style>{`@keyframes lkPulse { 0%,100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.25; } }`}</style>
@@ -104,10 +108,10 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
         {layout.pads.map(p => {
           const ms = placement.pads.get(p.midi);
           const color = ms?.length ? laneColor(song, ms[0].id) : null;
-          const pressed = pressedPitches.pads.has(p.midi) || (ms?.some(isKeyPressed) ?? false);
+          const pressed = pressedPitches.pads.has(p.midi) || (ms?.some(isKeyPressed) ?? false) || (!!ms && mouseHeld.current === ms);
           const expected = isExpected(ms);
           return (
-            <g key={p.midi} onMouseDown={() => handle(ms, false)} onMouseUp={() => handle(ms, true)} onMouseLeave={() => pressed && handle(ms, true)} style={{ cursor: ms ? 'pointer' : 'default' }}>
+            <g key={p.midi} {...handlers(ms)}>
               <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={6}
                 fill={pressed ? (color || '#e2e8f0') : color ? `${color}33` : '#111827'}
                 stroke={expected ? '#fde68a' : color || '#1f2937'} strokeWidth={expected ? 3 : 1.5}
@@ -132,7 +136,7 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
           const pressed = pressedPitches.keys.has(k.midi) || (ms?.some(isKeyPressed) ?? false);
           const expected = isExpected(ms);
           return (
-            <g key={k.midi} onMouseDown={() => handle(ms, false)} onMouseUp={() => handle(ms, true)} onMouseLeave={() => pressed && handle(ms, true)} style={{ cursor: ms ? 'pointer' : 'default' }}>
+            <g key={k.midi} {...handlers(ms)}>
               <rect x={k.x + 1} y={k.y} width={k.w - 2} height={k.h} rx={4}
                 fill={pressed ? (color || '#a5b4fc') : color ? `${color}55` : '#e5e7eb'}
                 stroke={expected ? '#f59e0b' : '#0f172a'} strokeWidth={expected ? 3 : 1}
@@ -150,13 +154,13 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
           const pressed = pressedPitches.keys.has(k.midi) || (ms?.some(isKeyPressed) ?? false);
           const expected = isExpected(ms);
           return (
-            <g key={k.midi} onMouseDown={() => handle(ms, false)} onMouseUp={() => handle(ms, true)} onMouseLeave={() => pressed && handle(ms, true)} style={{ cursor: ms ? 'pointer' : 'default' }}>
+            <g key={k.midi} {...handlers(ms)}>
               <rect x={k.x} y={k.y} width={k.w} height={k.h} rx={3}
                 fill={pressed ? (color || '#c7d2fe') : color ? color : '#111827'}
                 stroke={expected ? '#f59e0b' : '#000'} strokeWidth={expected ? 3 : 1}
                 style={expected ? { animation: 'lkPulse 0.6s ease-in-out infinite' } : undefined} />
               {ms && ms.length > 0 && (
-                <text x={k.x + k.w / 2} y={k.y + k.h - 8} textAnchor="middle" fill={pressed ? '#0f172a' : '#0f172a'} fontSize={10} fontWeight={900}>{keyLabel(ms[0]).split(' ')[0]}</text>
+                <text x={k.x + k.w / 2} y={k.y + k.h - 8} textAnchor="middle" fill="#0f172a" fontSize={10} fontWeight={900}>{keyLabel(ms[0]).split(' ')[0]}</text>
               )}
             </g>
           );
@@ -165,18 +169,20 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
 
       {showLegend && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {song.mappings.filter(m => m.isEnabled).map(m => {
+          {activeMappingsFor(song).map(m => {
             const color = laneColor(song, m.id);
-            const active = isKeyPressed(m) || mappingMidiNotes(m).some(n => (m.midiChannel === LK_PAD_CHANNEL ? pressedPitches.pads : pressedPitches.keys).has(n));
+            const c = classifyMappingNotes(m);
+            const active = isKeyPressed(m) || c.keyMidis.some(n => pressedPitches.keys.has(n)) || c.padMidis.some(n => pressedPitches.pads.has(n));
             const unplaced = placement.unplaced.includes(m);
             return (
-              <div key={m.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all ${active ? 'bg-white text-slate-900 border-white' : 'bg-slate-900/70 text-slate-300 border-slate-800'}`}
-                title={unplaced ? '기기 범위(건반 48~72 / 패드 36~51) 밖이라 그림에는 없음' : undefined}>
+              <button key={m.id} onMouseDown={() => press([m])} onMouseUp={releaseHeld} onMouseLeave={releaseHeld}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all ${active ? 'bg-white text-slate-900 border-white' : 'bg-slate-900/70 text-slate-300 border-slate-800 hover:border-slate-600'}`}
+                title={unplaced ? '기기 범위(건반 48~72 / 패드 36~51) 밖이라 그림에는 없음 — 여기서 마우스로 칠 수 있음' : '마우스로 트리거'}>
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
                 <span className="font-black">{keyLabel(m) || '—'}</span>
                 <span className="opacity-70">{mappingTargetName(song, m)}</span>
                 {unplaced && <span className="text-amber-400">⚠</span>}
-              </div>
+              </button>
             );
           })}
         </div>

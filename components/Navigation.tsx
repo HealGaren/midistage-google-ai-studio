@@ -319,4 +319,4 @@ const Navigation: React.FC<NavigationProps> = ({ songs, currentSongId, onSelectS
   );
 };
 
-export default Navigation;
+export default React.memo(Navigation);

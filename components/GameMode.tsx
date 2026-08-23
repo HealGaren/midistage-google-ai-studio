@@ -1,14 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, RefObject } from 'react';
 import { Song, ChartSettings, InputMapping } from '../types';
 import { Conductor, ConductorSnapshot } from '../hooks/useConductor';
 import { TakeRecorder } from '../hooks/useTakeRecorder';
-import { ChartEvent, chartLaneMappings, sectionSpans, sectionColor, totalBars, emptyChart } from '../utils/chart';
-import { audioUrl } from '../utils/projectStorage';
-import { computeLayout, drawHighway } from './game/highwayRenderer';
+import { ChartEvent, chartLaneMappings, sectionSpans, sectionColor, totalBars, emptyChart, innerNotesOf, noteName } from '../utils/chart';
+import { computeLayout, drawHighway, EventLabel } from './game/highwayRenderer';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Game 탭. 캔버스 하이웨이 + 송폼 스트립 + 가사 + 조작 버튼.
-// 시계(지휘자)는 App 이 들고 있어 탭을 옮겨도 위치가 유지된다. 여기서는 그리고 조작만.
+// 시계(지휘자)와 <audio> 는 App 이 들고 있어 탭을 옮겨도 위치/재생이 유지된다. 여기서는 그리고 조작만.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -19,11 +18,14 @@ interface Props {
   events: ChartEvent[];
   pressedKeys: Set<string>;
   pressedMidiNotes: Set<string>;
-  ccStates: Record<string, number>;
   onUpdateSong: (song: Song) => void;
   recorder: TakeRecorder;
   onReplayTake: (takeId: string) => void;
   activeMappings: InputMapping[];
+  audioRef: RefObject<HTMLAudioElement | null>;
+  audioSrc?: string;
+  audioFile?: string;
+  onPickLocalAudio: (file: File) => void;
 }
 
 const Btn: React.FC<{ onClick: () => void; title?: string; active?: boolean; danger?: boolean; children: React.ReactNode; className?: string }> = ({ onClick, title, active, danger, children, className = '' }) => (
@@ -36,24 +38,23 @@ const Btn: React.FC<{ onClick: () => void; title?: string; active?: boolean; dan
   </button>
 );
 
-const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, events, pressedKeys, pressedMidiNotes, onUpdateSong, recorder, onReplayTake, activeMappings }) => {
+const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, events, pressedKeys, pressedMidiNotes, onUpdateSong, recorder, onReplayTake, activeMappings, audioRef, audioSrc, audioFile, onPickLocalAudio }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [size, setSize] = useState({ w: 800, h: 500 });
   const [showSettings, setShowSettings] = useState(false);
-  const [audioTime, setAudioTime] = useState(0);
-  const [audioDur, setAudioDur] = useState(0);
+  const [audio, setAudio] = useState({ time: 0, dur: 0, paused: true });
   // 렌더 루프가 매 프레임 읽는 값들은 ref 로 — 키를 누를 때마다 루프를 재시작하지 않게
   const liveRef = useRef({ pressedKeys, pressedMidiNotes, events });
   liveRef.current = { pressedKeys, pressedMidiNotes, events };
   const bpb = song.beatsPerBar || 4;
-  const spans = useMemo(() => sectionSpans(song), [song]);
+  const sections = song.chart?.sections;
+  const spans = useMemo(() => sectionSpans(song), [sections, bpb]); // eslint-disable-line react-hooks/exhaustive-deps
   const bars = totalBars(song);
   const hasChart = !!song.chart && events.length > 0;
 
   // 레인: 차트가 쓰는 매핑. 차트가 없으면 현재 씬의 매핑 전부(눌림 모니터로라도 쓰이게)
-  const laneMappings = useMemo(() => hasChart ? chartLaneMappings(song, events) : activeMappings, [hasChart, song, events, activeMappings]);
+  const laneMappings = useMemo(() => hasChart ? chartLaneMappings(song, events) : activeMappings, [hasChart, song.mappings, events, activeMappings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── 크기 추적 ──
   useEffect(() => {
@@ -66,19 +67,28 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
     return () => ro.disconnect();
   }, []);
 
-  const layout = useMemo(() => computeLayout(song, laneMappings, size.w, size.h, settings), [song, laneMappings, size, settings]);
+  // 레인 배치와 노트 라벨은 곡/차트가 바뀔 때만 다시 계산 (프레임마다 X)
+  const layout = useMemo(() => computeLayout(song, laneMappings, size.w, size.h, settings), [song.mappings, song.presets, song.sequences, laneMappings, size, settings]); // eslint-disable-line react-hooks/exhaustive-deps
+  const labels = useMemo(() => {
+    const m = new Map<string, EventLabel>();
+    for (const e of events) {
+      const lane = layout.laneById.get(e.mappingId); if (!lane) continue;
+      const inner = settings.showInnerNotes ? innerNotesOf(song, e) : [];
+      const pitches = inner.map(n => noteName(n.pitch)).join(' ');
+      const text = pitches && lane.w > 60 ? `${lane.keys}  ·  ${pitches}` : pitches && lane.w <= 60 ? pitches : lane.keys;
+      m.set(e.id, { text, autoDurBeats: inner.length ? Math.max(...inner.map(n => n.durationBeats)) : 0 });
+    }
+    return m;
+  }, [events, layout, settings.showInnerNotes, song]);
 
-  // ── 오디오 연결 ──
+  // ── 오디오 상태(표시용) — 엘리먼트는 App 소유 ──
   useEffect(() => {
-    conductor.attachAudio(audioRef.current);
-    return () => conductor.attachAudio(null);
-  }, [conductor]);
-
-  // 개발 중 콘솔에서 시계 상태를 들여다보기 위한 핸들 (프로덕션 빌드에는 없음)
-  useEffect(() => { if (import.meta.env.DEV) (window as any).__conductor = conductor; }, [conductor]);
-  const audioFile = song.chart?.audio?.fileName;
-  const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
-  const audioSrc = localAudioUrl || (audioFile ? audioUrl(audioFile) : undefined);
+    const a = audioRef.current; if (!a) return;
+    const upd = () => setAudio({ time: a.currentTime, dur: a.duration || 0, paused: a.paused });
+    upd();
+    a.addEventListener('timeupdate', upd); a.addEventListener('loadedmetadata', upd); a.addEventListener('play', upd); a.addEventListener('pause', upd); a.addEventListener('ended', upd);
+    return () => { a.removeEventListener('timeupdate', upd); a.removeEventListener('loadedmetadata', upd); a.removeEventListener('play', upd); a.removeEventListener('pause', upd); a.removeEventListener('ended', upd); };
+  }, [audioRef, audioSrc]);
 
   // ── 렌더 루프 ──
   const visPos = useRef(0);
@@ -90,6 +100,7 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
     canvas.style.width = `${size.w}px`; canvas.style.height = `${size.h}px`;
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     let raf = 0;
+    const nextLanes = new Set<string>();
     const frame = () => {
       const now = performance.now();
       const dt = Math.min(100, now - lastFrame.current);
@@ -100,22 +111,24 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
       if (Math.abs(diff) > 0.75) visPos.current = target;
       else visPos.current += diff * Math.min(1, dt / 55);
       // 오래된 이펙트 정리
-      if (conductor.fx.current.length > 40) conductor.fx.current.splice(0, conductor.fx.current.length - 40);
+      const fx = conductor.fx.current;
+      if (fx.length > 40) fx.splice(0, fx.length - 40);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const live = liveRef.current;
-      let nextBeat: number | null = null;
-      for (const e of live.events) { if (conductor.statusOf(e.id) === 'pending') { nextBeat = e.beat; break; } }
+      const next = conductor.nextPending();
+      nextLanes.clear();
+      next?.mappingIds.forEach(id => nextLanes.add(id));
       drawHighway({
         ctx, W: size.w, H: size.h, song, settings, events: live.events, spans,
         pos: visPos.current, now, holding: conductor.isHolding(), running: conductor.isRunning(),
-        statusOf: conductor.statusOf, fx: conductor.fx.current, pressedKeys: live.pressedKeys, pressedMidiNotes: live.pressedMidiNotes,
-        lanes: layout.lanes, geometry: layout.geometry, nextEventBeat: nextBeat,
+        statusOf: conductor.statusOf, fx, pressedKeys: live.pressedKeys, pressedMidiNotes: live.pressedMidiNotes,
+        layout, labels, nextEventBeat: next?.beat ?? null, nextLanes,
       });
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [conductor, size, song, settings, spans, layout]);
+  }, [conductor, size, song, settings, spans, layout, labels]);
 
   // ── 가사 ──
   const lyrics = song.chart?.lyrics || [];
@@ -130,15 +143,13 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
     onUpdateSong({ ...song, chart: { ...chart, settings: { ...(chart.settings || {}), ...patch } } });
   };
 
-  const setMode = useCallback((m: 'live' | 'audio') => conductor.setMode(m), [conductor]);
-
   const curSpan = spans[snap.sectionIndex];
   const barInSection = curSpan ? Math.floor((snap.pos - curSpan.startBeat) / bpb) + 1 : 0;
   const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
   return (
     <div className="h-full flex flex-col gap-3 -m-8 p-4">
-      {/* ── 헤더: 상태 + 송폼 + 조작 ── */}
+      {/* ── 헤더: 상태 + 조작 ── */}
       <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-baseline gap-3 min-w-[260px]">
           <h2 className="text-2xl font-black text-white leading-none tracking-tight">{song.name}</h2>
@@ -157,14 +168,14 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
             <span className="text-slate-500 ml-1 tabular-nums">· {Math.floor(snap.beatInBar) + 1}</span></div>
           <div><span className="text-slate-600">Tempo </span><span className={`text-lg tabular-nums ${Math.abs(snap.bpm - song.bpm) > 0.5 ? 'text-amber-300' : 'text-white'}`}>{snap.bpm.toFixed(1)}</span>
             <span className="text-slate-600 text-[9px]"> / {song.bpm}</span></div>
-          {curSpan && <div><span className="text-slate-600">Section </span><span className="text-white" style={{ color: sectionColor(curSpan.section, curSpan.index) }}>{curSpan.section.name}</span><span className="text-slate-500"> {barInSection}/{curSpan.section.bars}</span></div>}
+          {curSpan && <div><span className="text-slate-600">Section </span><span style={{ color: sectionColor(curSpan.section, curSpan.index) }}>{curSpan.section.name}</span><span className="text-slate-500"> {barInSection}/{curSpan.section.bars}</span></div>}
           <div title="히트 / 놓침"><span className="text-emerald-400 tabular-nums">{snap.hits}</span><span className="text-slate-600"> / </span><span className="text-rose-400 tabular-nums">{snap.misses}</span></div>
         </div>
 
         <div className="flex items-center gap-1.5 ml-auto flex-wrap">
-          <Btn onClick={() => setMode(snap.mode === 'live' ? 'audio' : 'live')} active={snap.mode === 'audio'} title="LIVE: 내 연주가 시계 / AUDIO: 원곡 음원이 시계(연습)">{snap.mode === 'live' ? '🎧 Audio' : '🎹 Live'}</Btn>
+          <Btn onClick={() => conductor.setMode(snap.mode === 'live' ? 'audio' : 'live')} active={snap.mode === 'audio'} title="LIVE: 내 연주가 시계 / AUDIO: 원곡 음원이 시계(연습)">{snap.mode === 'live' ? '🎧 Audio' : '🎹 Live'}</Btn>
           <span className="w-px h-6 bg-slate-800 mx-1" />
-          <Btn onClick={conductor.syncBar} title="탭 = 지금이 마디 첫 박 (Space)">⏱ Bar</Btn>
+          <Btn onClick={conductor.syncBar} title="탭 = 지금이 마디 첫 박 (Space / 패드 48)">⏱ Bar</Btn>
           <Btn onClick={conductor.syncBeat} title="탭 = 지금이 박 (Enter)">⏱ Beat</Btn>
           <span className="w-px h-6 bg-slate-800 mx-1" />
           <Btn onClick={conductor.prevSection} title="이전 섹션 (PageUp / 패드 46)">⏮</Btn>
@@ -209,13 +220,13 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
       {showSettings && (
         <div className="flex flex-wrap items-center gap-4 px-4 py-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-[10px] font-bold text-slate-300">
           <label className="flex items-center gap-2">Layout
-            <select value={settings.layout} onChange={e => updateSettings({ layout: e.target.value as any })} className="bg-slate-800 rounded-lg px-2 py-1 outline-none">
+            <select value={settings.layout} onChange={e => updateSettings({ layout: e.target.value as ChartSettings['layout'] })} className="bg-slate-800 rounded-lg px-2 py-1 outline-none">
               <option value="device">Launchkey 건반/패드</option><option value="lanes">매핑별 레인</option>
             </select></label>
           <label className="flex items-center gap-2">Lookahead
             <input type="number" min={1} max={8} value={settings.lookaheadBars} onChange={e => updateSettings({ lookaheadBars: Math.max(1, parseInt(e.target.value) || 2) })} className="w-12 bg-slate-800 rounded-lg px-2 py-1 outline-none text-center" /> bars</label>
           <label className="flex items-center gap-2">Tempo follow
-            <select value={settings.tempoFollow} onChange={e => updateSettings({ tempoFollow: e.target.value as any })} className="bg-slate-800 rounded-lg px-2 py-1 outline-none">
+            <select value={settings.tempoFollow} onChange={e => updateSettings({ tempoFollow: e.target.value as ChartSettings['tempoFollow'] })} className="bg-slate-800 rounded-lg px-2 py-1 outline-none">
               <option value="off">off (곡 BPM 고정)</option><option value="gentle">gentle</option><option value="tight">tight</option>
             </select></label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={settings.holdForNotes} onChange={e => updateSettings({ holdForNotes: e.target.checked })} /> 노트에서 기다림</label>
@@ -228,7 +239,7 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
         </div>
       )}
 
-      {/* ── 가사 + 오디오 ── */}
+      {/* ── 가사 + 오디오 + 테이크 ── */}
       <div className="flex items-center gap-4 min-h-[44px]">
         <div className="flex-1 flex items-baseline gap-4 px-4 py-2 rounded-2xl bg-slate-900/60 border border-slate-800 overflow-hidden">
           {lyrics.length === 0 ? (
@@ -241,21 +252,17 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
           )}
         </div>
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border ${snap.mode === 'audio' ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-slate-900/60 border-slate-800'}`}>
-          <audio ref={audioRef} src={audioSrc} preload="auto"
-            onTimeUpdate={e => setAudioTime(e.currentTarget.currentTime)}
-            onLoadedMetadata={e => setAudioDur(e.currentTarget.duration)}
-            onSeeked={e => { if (conductor.getMode() === 'audio') { const off = song.chart?.audio?.offsetMs || 0; const bm = (60000 / (song.chart?.audio?.bpm || song.bpm)) * (4 / (song.beatUnit || 4)); conductor.seekBeat((e.currentTarget.currentTime * 1000 - off) / bm); } }} />
           {audioSrc ? (
             <>
-              <Btn onClick={() => { const a = audioRef.current; if (!a) return; if (conductor.getMode() !== 'audio') setMode('audio'); a.paused ? a.play() : a.pause(); }} active={!audioRef.current?.paused}>
-                {audioRef.current?.paused === false ? '⏸' : '▶'} {audioFile ? audioFile.replace(/\.[^.]+$/, '').slice(0, 18) : 'local file'}
+              <Btn onClick={() => { const a = audioRef.current; if (!a) return; if (conductor.getMode() !== 'audio') conductor.setMode('audio'); if (a.paused) a.play().catch(() => {}); else a.pause(); }} active={!audio.paused}>
+                {audio.paused ? '▶' : '⏸'} {audioFile ? audioFile.replace(/\.[^.]+$/, '').slice(0, 18) : 'local file'}
               </Btn>
-              <input type="range" min={0} max={audioDur || 0} step={0.1} value={audioTime} onChange={e => { const a = audioRef.current; if (a) a.currentTime = parseFloat(e.target.value); }} className="w-32 accent-emerald-400" />
-              <span className="text-[10px] font-mono text-slate-400 tabular-nums">{fmtTime(audioTime)} / {fmtTime(audioDur)}</span>
+              <input type="range" min={0} max={audio.dur || 0} step={0.1} value={audio.time} onChange={e => { const a = audioRef.current; if (a) a.currentTime = parseFloat(e.target.value); }} className="w-32 accent-emerald-400" />
+              <span className="text-[10px] font-mono text-slate-400 tabular-nums">{fmtTime(audio.time)} / {fmtTime(audio.dur)}</span>
             </>
           ) : (
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 cursor-pointer hover:text-slate-300" title="이 세션에서만 쓸 음원(저장 안 됨). 저장하려면 Editor → Chart 에서 올리세요">
-              + 음원 열기 <input type="file" accept="audio/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) setLocalAudioUrl(URL.createObjectURL(f)); }} />
+              + 음원 열기 <input type="file" accept="audio/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onPickLocalAudio(f); }} />
             </label>
           )}
         </div>

@@ -81,6 +81,8 @@ export async function listAudioFiles(): Promise<SavedAudioMeta[]> {
 
 export async function uploadAudioFile(file: File): Promise<string> {
   const name = file.name.replace(/[\\/:*?"<>|]/g, '_');
+  const ext = name.slice(name.lastIndexOf('.')).toLowerCase();
+  if (!AUDIO_EXTENSIONS.includes(ext)) throw new Error(`지원하지 않는 형식 (${ext || '확장자 없음'}) — ${AUDIO_EXTENSIONS.join(' ')}`);
   const res = await fetch(audioUrl(name), { method: 'PUT', body: file });
   if (!res.ok) {
     const msg = await res.json().catch(() => ({}));
@@ -89,7 +91,5 @@ export async function uploadAudioFile(file: File): Promise<string> {
   return name;
 }
 
-export async function deleteAudioFile(name: string): Promise<void> {
-  const res = await fetch(audioUrl(name), { method: 'DELETE' });
-  if (!res.ok) throw new Error(`Delete failed (${res.status})`);
-}
+/** 업로드 가능한 확장자 (서버 화이트리스트와 동일). input accept 와 사전 검사에 쓴다 */
+export const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac'];

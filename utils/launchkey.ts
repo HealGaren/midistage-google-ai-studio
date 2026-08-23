@@ -123,6 +123,27 @@ export function highwayGeometry(width: number, height: number, panelH: number, h
   return { keyboard, keys, padLanes, padArea, padsBottom };
 }
 
+/**
+ * 매핑이 기기의 어느 키/패드에 놓이는지. Live 탭 그림과 Game 하이웨이가 **같은 함수**를 써야
+ * 떨어지는 노트와 그려진 키가 어긋나지 않는다.
+ *  - 채널 10 → 패드 (36~51 중 있는 것)
+ *  - omni(0) → 건반 범위(48~72)면 건반, 범위 밖이면서 패드 번호면 패드
+ *  - 그 외 채널 → 건반 범위 안의 것만
+ */
+export function classifyMappingNotes(m: { midiChannel: number; isMidiRange: boolean; midiRangeStart: number; midiRangeEnd: number; midiValue: string }): { keyMidis: number[]; padMidis: number[] } {
+  const notes: number[] = [];
+  if (m.isMidiRange) { for (let n = m.midiRangeStart; n <= m.midiRangeEnd; n++) notes.push(n); }
+  else String(m.midiValue || '').split(',').forEach(s => { const n = parseInt(s.trim(), 10); if (!isNaN(n)) notes.push(n); });
+  const keyMidis: number[] = [], padMidis: number[] = [];
+  for (const n of notes) {
+    const inKeys = n >= LK_KEY_LOW && n <= LK_KEY_HIGH;
+    if (m.midiChannel === LK_PAD_CHANNEL) { if (padOf(n)) padMidis.push(n); }
+    else if (m.midiChannel === 0 && !inKeys && padOf(n)) padMidis.push(n);
+    else if (inKeys) keyMidis.push(n);
+  }
+  return { keyMidis, padMidis };
+}
+
 export function padOf(midi: number): { row: 0 | 1; col: number } | null {
   let col = LK_PAD_TOP.indexOf(midi);
   if (col >= 0) return { row: 0, col };

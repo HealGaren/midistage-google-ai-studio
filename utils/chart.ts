@@ -237,6 +237,17 @@ export function mappingKeys(m: InputMapping): string[] {
   return String(m.keyboardValue || '').split(',').map(s => s.trim()).filter(Boolean);
 }
 
+/** 화면에 적는 키 이름: 한 글자는 대문자("J K L ;"), 나머지는 그대로("space") */
+export function keyLabel(m: InputMapping): string {
+  return mappingKeys(m).map(k => k.length === 1 ? k.toUpperCase() : k).join(' ');
+}
+
+/** 현재 씬에서 살아 있는 매핑 (트리거 디스패치·Live 탭·Game 폴백 레인이 모두 같은 규칙) */
+export function activeMappingsFor(song: Song): InputMapping[] {
+  const scene = song.scenes.find(s => s.id === song.activeSceneId);
+  return song.mappings.filter(m => m.isEnabled && (m.scope === 'global' || (!!scene && scene.mappingIds.includes(m.id))));
+}
+
 /**
  * 이 노트를 눌렀을 때 실제로 울리는 음들(표시용). 시퀀스 스텝이면 그 스텝의 음,
  * 프리셋이면 프리셋의 음. 길이는 ms→beat 로 환산(null 은 "누르는 동안" → 0).

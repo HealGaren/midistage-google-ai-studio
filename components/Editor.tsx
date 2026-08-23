@@ -116,4 +116,4 @@ const Editor: React.FC<EditorProps> = ({ song, onUpdateSong, sendNoteOn, sendNot
   );
 };
 
-export default Editor;
+export default React.memo(Editor);

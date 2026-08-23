@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Song, InputMapping } from '../types';
 import { midiService } from '../webMidiService';
 import { isInputCaptured, isTypingTarget, normalizeKey } from '../utils/inputCapture';
+import { activeMappingsFor } from '../utils/chart';
 
 export type TriggerFn = (
   mappingId: string,
@@ -29,18 +30,7 @@ export function useLiveTriggers(song: Song, selectedInputId: string, onTrigger: 
   // "channel-pitch" 형태로 저장해 채널 정보를 함께 들고 간다
   const [pressedMidiNotes, setPressedMidiNotes] = useState<Set<string>>(new Set());
 
-  const activeScene = useMemo(
-    () => song.scenes.find(s => s.id === song.activeSceneId),
-    [song.scenes, song.activeSceneId]
-  );
-
-  const activeMappings = useMemo(
-    () =>
-      song.mappings.filter(
-        m => m.isEnabled && (m.scope === 'global' || (activeScene && activeScene.mappingIds.includes(m.id)))
-      ),
-    [song.mappings, activeScene]
-  );
+  const activeMappings = useMemo(() => activeMappingsFor(song), [song.mappings, song.scenes, song.activeSceneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const findMappings = useCallback(
     (type: 'keyboard' | 'midi', value: string | number, channel?: number): InputMapping[] => {

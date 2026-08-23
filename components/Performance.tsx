@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Song, ActiveNoteState, InputMapping, SequenceMode, CCMapping } from '../types';
 import { LaunchkeyView } from './LaunchkeyView';
+import { activeMappingsFor } from '../utils/chart';
 
 interface PerformanceProps {
   song: Song;
@@ -143,12 +144,7 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
     [song.scenes, song.activeSceneId]
   );
 
-  const activeMappings = useMemo(() => {
-    return song.mappings.filter(m => 
-      m.isEnabled && 
-      (m.scope === 'global' || (activeScene && activeScene.mappingIds.includes(m.id)))
-    );
-  }, [song.mappings, activeScene]);
+  const activeMappings = useMemo(() => activeMappingsFor(song), [song.mappings, activeScene]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const globalMappings = useMemo(() => activeMappings.filter(m => m.scope === 'global'), [activeMappings]);
   const sceneMappings = useMemo(() => activeMappings.filter(m => m.scope === 'scene'), [activeMappings]);
@@ -540,4 +536,5 @@ const midiToNoteName = (midi: number) => {
   return `${name}${octave}`;
 };
 
-export default Performance;
+// 지휘자 스냅샷이 10Hz 로 App 을 리렌더하므로, 자기 props 가 안 바뀌면 건너뛴다
+export default React.memo(Performance);

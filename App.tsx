@@ -7,9 +7,9 @@ import { useLiveTriggers } from './hooks/useLiveTriggers';
 import { useDawClock } from './hooks/useDawClock';
 import { useConductor } from './hooks/useConductor';
 import { useTakeRecorder } from './hooks/useTakeRecorder';
-import { buildChartEvents, chartSettings } from './utils/chart';
+import { buildChartEvents, chartSettings, activeMappingsFor, beatMs as beatMsOf } from './utils/chart';
 import { isInputCaptured, isTypingTarget, normalizeKey } from './utils/inputCapture';
-import { getLastProjectName, loadSavedProject } from './utils/projectStorage';
+import { getLastProjectName, loadSavedProject, audioUrl } from './utils/projectStorage';
 import Navigation from './components/Navigation';
 import Editor from './components/Editor';
 import Performance from './components/Performance';
@@ -112,14 +112,23 @@ const App: React.FC = () => {
 
   // 마지막으로 폴더에서 열었던 프로젝트를 자동 복구 (dev 서버가 있을 때만 동작).
   // 새로고침/재시작으로 세트가 통째로 사라지는 사고를 막는다. 저장은 여전히 명시적.
+  // 응답이 오기 전에 사용자가 이미 뭔가 바꿨으면(임포트, 장치 선택) 덮어쓰지 않는다.
+  const projectRef = useRef(project);
+  projectRef.current = project;
   useEffect(() => {
     const last = getLastProjectName();
     if (!last) return;
     loadSavedProject(last)
       .then(loaded => {
+        if (projectRef.current !== DEFAULT_PROJECT) return;
         if (!Array.isArray(loaded.songs) || loaded.songs.length === 0) return;
-        setProject(loaded);
-        setCurrentSongId(loaded.songs[0].id);
+        // 손으로 고친 파일이 필드를 빠뜨려도 렌더가 터지지 않게 배열들을 채워 준다
+        const songs = loaded.songs.map((s: Song) => ({
+          ...s, presets: s.presets || [], presetFolders: s.presetFolders || [], sequences: s.sequences || [],
+          mappings: s.mappings || [], ccMappings: s.ccMappings || [], scenes: s.scenes?.length ? s.scenes : [{ id: uuidv4(), name: 'Default Scene', mappingIds: [] }],
+        }));
+        setProject({ ...loaded, songs, globalMappings: loaded.globalMappings || [], globalCCMappings: loaded.globalCCMappings || [] });
+        setCurrentSongId(songs[0].id);
       })
       .catch(() => { /* 정적 빌드 등 API 가 없으면 조용히 무시 */ });
   }, []);
@@ -133,15 +142,37 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  // ── Game 모드: 차트 → 이벤트, 지휘자(실시간 싱크 시계), 녹화기 ──
-  // App 레벨에 두어 어느 탭에 있든 시계가 흐르고 녹화가 된다.
-  const chartEvents = useMemo(() => buildChartEvents(currentSong), [currentSong]);
-  const chartSetting = useMemo(() => chartSettings(currentSong), [currentSong]);
+  // ── Game 모드: 차트 → 이벤트, 지휘자(실시간 싱크 시계), 녹화기, 연습 음원 ──
+  // App 레벨에 두어 어느 탭에 있든 시계가 흐르고 녹화/재생이 유지된다.
+  // 이벤트는 차트·매핑·시퀀스·박자표에서만 파생된다 — 씬 전환이나 테이크 저장으로는 다시 만들지 않는다.
+  const chartEvents = useMemo(() => buildChartEvents(currentSong),
+    [currentSong.chart?.sections, currentSong.chart?.patterns, currentSong.mappings, currentSong.sequences, currentSong.beatsPerBar]); // eslint-disable-line react-hooks/exhaustive-deps
+  const chartSetting = useMemo(() => chartSettings(currentSong), [currentSong.chart?.settings]); // eslint-disable-line react-hooks/exhaustive-deps
   const { conductor, snapshot: chartSnapshot } = useConductor({ song: currentSong, events: chartEvents, settings: chartSetting, setSequenceStep });
   const recorder = useTakeRecorder(currentSong, handleUpdateSong);
+  const recorderRef = useRef(recorder);
+  recorderRef.current = recorder;
+  // 멈춘 상태에서 "첫 노트로 자동 시작"은 Game 탭을 보고 있을 때만
+  useEffect(() => { conductor.setAutoStart(activeTab === 'game'); }, [conductor, activeTab]);
+  useEffect(() => { if (import.meta.env.DEV) (window as any).__conductor = conductor; }, [conductor]);
+
+  // 연습 음원 <audio> — 탭을 옮겨도 끊기지 않게 App 이 렌더한다
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
+  useEffect(() => { setLocalAudioUrl(null); }, [currentSong.id]);
+  const audioFile = currentSong.chart?.audio?.fileName;
+  const audioSrc = localAudioUrl || (audioFile ? audioUrl(audioFile) : undefined);
+  useEffect(() => { conductor.attachAudio(audioRef.current); }, [conductor, audioSrc]);
+  const handleAudioSeeked = useCallback(() => {
+    const a = audioRef.current;
+    if (!a || conductor.getMode() !== 'audio') return;
+    const s = currentSongRef.current;
+    const offset = s.chart?.audio?.offsetMs || 0;
+    conductor.seekBeat((a.currentTime * 1000 - offset) / beatMsOf(s.chart?.audio?.bpm || s.bpm, s.beatUnit || 4));
+  }, [conductor]);
 
   const dispatchTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset', targetId: string, isRelease: boolean, triggerValue: string | number, fromReplay = false) => {
-    if (!fromReplay) recorder.capture({ mappingId, release: isRelease, value: triggerValue });
+    if (!fromReplay) recorderRef.current.capture({ mappingId, release: isRelease, value: triggerValue });
     // 차트와 대조: 누르는 순간 "이게 차트의 어느 노트인지" 정해 싱크를 맞추고, 시퀀스면
     // 엔진 스텝을 그 노트로 맞춘 뒤 친다(놓친 노트가 있어도 맞는 음이 나오도록).
     if (!isRelease) conductor.onPress(mappingId);
@@ -169,30 +200,26 @@ const App: React.FC = () => {
         handleUpdateSong({ ...currentSong, activeSceneId: targetId });
       }
     }
-  }, [triggerPreset, triggerSequence, triggerTogglePreset, currentSong, handleUpdateSong, conductor, recorder]);
-
-  const handleActionTrigger = useCallback((mappingId: string, actionType: 'preset' | 'sequence' | 'switch_scene' | 'toggle_preset', targetId: string, isRelease: boolean, triggerValue: string | number) =>
-    dispatchTrigger(mappingId, actionType, targetId, isRelease, triggerValue, false), [dispatchTrigger]);
+  }, [triggerPreset, triggerSequence, triggerTogglePreset, currentSong, handleUpdateSong, conductor]);
+  // 키보드/MIDI/마우스가 쓰는 5-인자 형태 (fromReplay 기본값 false)
+  const handleActionTrigger = dispatchTrigger;
 
   // 테이크 재생: 녹화된 입력을 같은 파이프라인으로 흘려보낸다(엔진·지휘자가 그때처럼 반응)
   const dispatchRef = useRef(dispatchTrigger);
   dispatchRef.current = dispatchTrigger;
   const handleReplayTake = useCallback((takeId: string) => {
-    recorder.replay(takeId, (ev: ChartTakeEvent) => {
+    recorderRef.current.replay(takeId, (ev: ChartTakeEvent) => {
       const m = currentSongRef.current.mappings.find(x => x.id === ev.mappingId);
       if (m) dispatchRef.current(m.id, m.actionType, m.actionTargetId, ev.release, ev.value, true);
     }, startBeat => { conductor.seekBeat(startBeat); conductor.setRunning(true); });
-  }, [recorder, conductor]);
+  }, [conductor]);
 
   // 곡 매핑 → 키보드/MIDI 연결. App 레벨에 두었기 때문에 Editor·Settings 탭에서도
   // 연주가 그대로 살아 있다. (매핑 러닝 중이거나 글자를 입력 중일 때만 비켜난다)
   const { pressedKeys, pressedMidiNotes } = useLiveTriggers(currentSong, project.selectedInputId, handleActionTrigger);
 
   // Game 탭의 폴백 레인(차트가 없을 때): 지금 씬에서 살아 있는 매핑
-  const activeMappings = useMemo(() => {
-    const scene = currentSong.scenes.find(s => s.id === currentSong.activeSceneId);
-    return currentSong.mappings.filter(m => m.isEnabled && (m.scope === 'global' || (scene && scene.mappingIds.includes(m.id))));
-  }, [currentSong]);
+  const activeMappings = useMemo(() => activeMappingsFor(currentSong), [currentSong.mappings, currentSong.scenes, currentSong.activeSceneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // DAW 가 흘려보내는 MIDI 클럭에서 읽은 템포와 박 (표시 전용).
   // MIDI 클럭은 4분음표당 24틱이므로, 8분음표를 한 박으로 세는 6/8 같은 곡은 12틱이 한 박이다.
@@ -255,11 +282,7 @@ const App: React.FC = () => {
   }, [project.globalMappings, handleGlobalActionTrigger]);
 
   // Live 탭의 Launchkey 그림에 "차트상 다음에 누를 키"를 비춰 주기 위한 매핑 id 들
-  const expectedMappingIds = useMemo(() => {
-    const b = chartSnapshot.nextEventBeat;
-    if (b === null) return undefined;
-    return new Set(chartEvents.filter(e => Math.abs(e.beat - b) < 0.01).map(e => e.mappingId));
-  }, [chartSnapshot.nextEventBeat, chartEvents]);
+  const expectedMappingIds = useMemo(() => chartSnapshot.running ? new Set(chartSnapshot.nextMappingIds) : undefined, [chartSnapshot.nextMappingIds, chartSnapshot.running]);
 
   // Global MIDI Triggers + MIDI Monitor Logging
   useEffect(() => {
@@ -402,8 +425,10 @@ const App: React.FC = () => {
         <Navigation songs={project.songs} currentSongId={currentSongId} onSelectSong={setCurrentSongId} onUpdateProject={handleUpdateProject} />
         <main className="flex-1 relative overflow-auto p-8 bg-slate-950 custom-scrollbar">
           {activeTab === 'editor' && <Editor song={currentSong} onUpdateSong={handleUpdateSong} sendNoteOn={sendNoteOn} sendNoteOff={sendNoteOff} selectedInputId={project.selectedInputId} />}
-          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} globalCCMappings={project.globalCCMappings} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} dawBpm={dawBpm} dawBeat={dawBeat} expectedMappingIds={chartSnapshot.running ? expectedMappingIds : undefined} />}
-          {activeTab === 'game' && <GameMode song={currentSong} conductor={conductor} snapshot={chartSnapshot} settings={chartSetting} events={chartEvents} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} ccStates={ccStates} onUpdateSong={handleUpdateSong} recorder={recorder} onReplayTake={handleReplayTake} activeMappings={activeMappings} />}
+          {activeTab === 'performance' && <Performance song={currentSong} activeNotes={activeMidiNotes} stepPositions={stepPositions} onTrigger={handleActionTrigger} selectedInputId={project.selectedInputId} onUpdateSong={handleUpdateSong} ccStates={ccStates} getTogglePresetState={getTogglePresetState} globalCCMappings={project.globalCCMappings} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} dawBpm={dawBpm} dawBeat={dawBeat} expectedMappingIds={expectedMappingIds} />}
+          {activeTab === 'game' && <GameMode song={currentSong} conductor={conductor} snapshot={chartSnapshot} settings={chartSetting} events={chartEvents} pressedKeys={pressedKeys} pressedMidiNotes={pressedMidiNotes} onUpdateSong={handleUpdateSong} recorder={recorder} onReplayTake={handleReplayTake} activeMappings={activeMappings} audioRef={audioRef} audioSrc={audioSrc} audioFile={audioFile} onPickLocalAudio={f => setLocalAudioUrl(URL.createObjectURL(f))} />}
+          {/* 연습 음원. Game 탭 밖에서도 재생이 이어지도록 여기 둔다 */}
+          <audio ref={audioRef} src={audioSrc} preload="auto" onSeeked={handleAudioSeeked} className="hidden" />
           {activeTab === 'settings' && <Settings project={project} onUpdateProject={handleUpdateProject} />}
         </main>
       </div>

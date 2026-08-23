@@ -422,13 +422,14 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
   const setSequenceStep = useCallback((seqId: string, index: number) => {
     const seq = currentSong.sequences.find(s => s.id === seqId);
     if (!seq || seq.items.length === 0) return;
+    // AUTO 는 스텝 개념이 없고, 하위 시퀀스를 품은 GROUP 은 groupIndicesRef 로 돈다 → 여기서 건드리면 표시만 어긋난다
+    if (seq.mode === SequenceMode.AUTO) return;
+    if (seq.mode === SequenceMode.GROUP && seq.items.some(it => it.type === 'sequence')) return;
     const idx = ((index % seq.items.length) + seq.items.length) % seq.items.length;
     if (stepIndicesRef.current[seqId] === idx) return;
     stepIndicesRef.current[seqId] = idx;
     setStepPositions(prev => ({ ...prev, [seqId]: idx - 1 }));
   }, [currentSong]);
-
-  const getSequenceStep = useCallback((seqId: string): number => stepIndicesRef.current[seqId] || 0, []);
 
   const triggerTogglePreset = useCallback((presetId: string, mappingId: string = 'ui', triggerValue: string | number = 'direct') => {
     const preset = currentSong.presets.find(p => p.id === presetId);
@@ -457,5 +458,5 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
     return togglePresetStateRef.current.get(presetId) || false;
   }, []);
 
-  return { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences, triggerTogglePreset, getTogglePresetState, setSequenceStep, getSequenceStep };
+  return { activeMidiNotes, stepPositions, sendNoteOn, sendNoteOff, stopAllNotes, triggerPreset, triggerSequence, resetAllSequences, triggerTogglePreset, getTogglePresetState, setSequenceStep };
 };
