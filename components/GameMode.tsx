@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, RefObject } from 'react';
 import { Song, ChartSettings, InputMapping } from '../types';
 import { Conductor, ConductorSnapshot } from '../hooks/useConductor';
 import { TakeRecorder } from '../hooks/useTakeRecorder';
-import { ChartEvent, chartLaneMappings, sectionSpans, sectionColor, totalBars, emptyChart, innerNotesOf, noteName, LAYOUT_OPTIONS } from '../utils/chart';
+import { ChartEvent, chartLaneMappings, sectionSpans, sectionColor, totalBars, emptyChart, innerNotesOf, noteName, seqProgress, LAYOUT_OPTIONS } from '../utils/chart';
 import { LK_PAD_CHANNEL } from '../utils/launchkey';
 import { computeLayout, drawHighway, EventLabel } from './game/highwayRenderer';
 
@@ -28,6 +28,8 @@ interface Props {
   audioSrc?: string;
   audioFile?: string;
   onPickLocalAudio: (file: File) => void;
+  /** 엔진의 시퀀스 스텝 위치 — 키캡에 진행도(n/m)를 적는다 */
+  stepPositions: Record<string, number>;
 }
 
 const Btn: React.FC<{ onClick: () => void; title?: string; active?: boolean; danger?: boolean; children: React.ReactNode; className?: string }> = ({ onClick, title, active, danger, children, className = '' }) => (
@@ -40,7 +42,7 @@ const Btn: React.FC<{ onClick: () => void; title?: string; active?: boolean; dan
   </button>
 );
 
-const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, events, pressedKeys, pressedMidiNotes, onUpdateSong, recorder, onReplayTake, activeMappings, audioRef, audioSrc, audioFile, onPickLocalAudio, keyLow }) => {
+const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, events, pressedKeys, pressedMidiNotes, onUpdateSong, recorder, onReplayTake, activeMappings, audioRef, audioSrc, audioFile, onPickLocalAudio, keyLow, stepPositions }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 500 });
@@ -52,8 +54,14 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
     pressedMidiNotes.forEach(k => { const i = k.indexOf('-'); const ch = +k.slice(0, i), p = +k.slice(i + 1); (ch === LK_PAD_CHANNEL ? pads : keyMidis).add(p); });
     return { keyMidis, pads };
   }, [pressedMidiNotes]);
-  const liveRef = useRef({ pressedKeys, pressedSets, events, settings });
-  liveRef.current = { pressedKeys, pressedSets, events, settings };
+  // 시퀀스 레인 진행도 (mappingId → "친 수/전체")
+  const stepProgress = useMemo(() => {
+    const map = new Map<string, string>();
+    activeMappings.forEach(m => { const pr = seqProgress(song, m, stepPositions); if (pr) map.set(m.id, pr); });
+    return map;
+  }, [song, activeMappings, stepPositions]);
+  const liveRef = useRef({ pressedKeys, pressedSets, events, settings, stepProgress });
+  liveRef.current = { pressedKeys, pressedSets, events, settings, stepProgress };
   const bpb = song.beatsPerBar || 4;
   const sections = song.chart?.sections;
   const spans = useMemo(() => sectionSpans(song), [sections, bpb]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -133,7 +141,7 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
         ctx, W: size.w, H: size.h, song, settings: live.settings, events: live.events, spans,
         pos: visPos.current, now, holding: conductor.isHolding(), running: conductor.isRunning(),
         statusOf: id => conductor.statusOf(id), fx, pressedKeys: live.pressedKeys, pressedKeyMidis: live.pressedSets.keyMidis, pressedPads: live.pressedSets.pads,
-        layout, labels, nextEventBeat: next?.beat ?? null, nextLanes, combo: conductor.getCombo(), judge: conductor.isJudged(),
+        layout, labels, nextEventBeat: next?.beat ?? null, nextLanes, stepProgress: live.stepProgress, combo: conductor.getCombo(), judge: conductor.isJudged(),
       });
       raf = requestAnimationFrame(frame);
     };

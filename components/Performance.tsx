@@ -359,6 +359,7 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                 showLegend={prefs.liveShowLegend}
                 showNoteNames={prefs.liveShowNoteNames}
                 keyLow={keyLow}
+                stepPositions={stepPositions}
                 onTrigger={(m, release) => onTrigger(m.id, m.actionType, m.actionTargetId, release, 'mouse')}
               />
             </section>

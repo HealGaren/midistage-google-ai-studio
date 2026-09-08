@@ -1,7 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { Song, InputMapping } from '../types';
 import { deviceLayout, LK_PAD_CHANNEL, LK_KEY_LOW, LK_BUTTON_CH, classifyMappingNotes } from '../utils/launchkey';
-import { laneColor, keyLabel, mappingKeys, mappingTargetName, noteName, activeMappingsFor } from '../utils/chart';
+import { laneColor, keyLabel, mappingKeys, mappingTargetName, noteName, activeMappingsFor, seqProgress } from '../utils/chart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Launchkey Mini MK3 모양 그대로 "무엇이 눌려 있고 무엇을 눌러야 하는지" 보여준다.
@@ -22,6 +22,8 @@ interface Props {
   showLegend?: boolean;
   showNoteNames?: boolean;
   keyLow?: number;
+  /** 시퀀스 진행도(엔진 stepPositions) — 주면 키캡에 "친 수/전체" 를 같이 적는다 */
+  stepPositions?: Record<string, number>;
 }
 
 interface Placement { keys: Map<number, InputMapping[]>; pads: Map<number, InputMapping[]>; unplaced: InputMapping[]; }
@@ -40,7 +42,7 @@ export function placeMappings(song: Song, keyLow = LK_KEY_LOW): Placement {
   return { keys, pads, unplaced };
 }
 
-export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiNotes, ccStates, expectedMappingIds, onTrigger, className, showLegend = true, showNoteNames = true, keyLow = LK_KEY_LOW }) => {
+export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiNotes, ccStates, expectedMappingIds, onTrigger, className, showLegend = true, showNoteNames = true, keyLow = LK_KEY_LOW, stepPositions }) => {
   const W = 1000;
   const layout = useMemo(() => deviceLayout(W, { keyLow }), [keyLow]);
   const placement = useMemo(() => placeMappings(song, keyLow), [song, keyLow]);
@@ -119,6 +121,8 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
                 stroke={expected ? '#fde68a' : color || '#1f2937'} strokeWidth={expected ? 3 : 1.5}
                 style={expected ? { animation: 'lkPulse 0.6s ease-in-out infinite' } : undefined} />
               <text x={p.x + 6} y={p.y + 13} fill={pressed ? '#0f172a' : '#64748b'} fontSize={9} fontWeight={800}>{p.midi}</text>
+              {stepPositions && ms?.length ? (() => { const pr = seqProgress(song, ms[0], stepPositions); return pr ?
+                <text x={p.x + p.w - 5} y={p.y + 13} textAnchor="end" fill={pressed ? '#0f172a' : '#e2e8f0'} fontSize={9} fontWeight={900}>{pr}</text> : null; })() : null}
               {ms && ms.length > 0 && (
                 <>
                   <text x={p.x + p.w / 2} y={p.y + p.h / 2 + 2} textAnchor="middle" fill={pressed ? '#0f172a' : '#f8fafc'} fontSize={13} fontWeight={900}>{keyLabel(ms[0]) || '—'}</text>
@@ -164,6 +168,8 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
               {ms && ms.length > 0 && (
                 <text x={k.x + k.w / 2} y={k.y + k.h - 24} textAnchor="middle" fill="#0f172a" fontSize={12} fontWeight={900}>{keyLabel(ms[0]).split(' ')[0]}</text>
               )}
+              {stepPositions && ms?.length ? (() => { const pr = seqProgress(song, ms[0], stepPositions); return pr ?
+                <text x={k.x + k.w / 2} y={k.y + k.h - 38} textAnchor="middle" fill="#0f172a" fontSize={9} fontWeight={900} opacity={0.85}>{pr}</text> : null; })() : null}
             </g>
           );
         })}
@@ -181,6 +187,8 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
               {ms && ms.length > 0 && (
                 <text x={k.x + k.w / 2} y={k.y + k.h - 8} textAnchor="middle" fill="#0f172a" fontSize={10} fontWeight={900}>{keyLabel(ms[0]).split(' ')[0]}</text>
               )}
+              {stepPositions && ms?.length ? (() => { const pr = seqProgress(song, ms[0], stepPositions); return pr ?
+                <text x={k.x + k.w / 2} y={k.y + k.h - 20} textAnchor="middle" fill="#0f172a" fontSize={8} fontWeight={900} opacity={0.85}>{pr}</text> : null; })() : null}
             </g>
           );
         })}

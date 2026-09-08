@@ -51,6 +51,7 @@ export interface HighwayFrame {
   labels: Map<string, EventLabel>;   // eventId → 라벨(미리 계산)
   nextEventBeat: number | null;
   nextLanes: Set<string>;            // 다음 박에 눌러야 할 매핑 id
+  stepProgress: Map<string, string>; // mappingId → 시퀀스 진행도 "n/m" (시퀀스 레인만)
   combo: number;
   /** 판정/콤보 표시 여부. LIVE 모드는 누른 순간이 곧 기준이라 의미가 없어 끈다(AUDIO 연습 모드만) */
   judge: boolean;
@@ -204,7 +205,7 @@ function fitTextRaw(ctx: CanvasRenderingContext2D, text: string, maxW: number): 
 
 /** 하단 패널의 키캡/패드/건반 하나 */
 function drawCap(ctx: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }, lane: LaneBox | undefined, pressed: boolean, expected: boolean, blink: number,
-  style: { idleFill: string; idleStroke: string; radius: number; label?: string; labelY?: number; labelColor?: string; sub?: string; subY?: number; subColor?: string }) {
+  style: { idleFill: string; idleStroke: string; radius: number; label?: string; labelY?: number; labelColor?: string; sub?: string; subY?: number; subColor?: string; prog?: string; progY?: number }) {
   // 눌림 = 확 밝아짐. 유휴 매핑색이 진해서(검은건반은 꽉 찬 색) 같은 색으로는 티가 안 난다
   ctx.fillStyle = pressed ? '#f8fafc' : lane ? hexA(lane.color, style.idleFill === 'tint' ? 0.8 : 1) : style.idleFill;
   if (lane && !pressed && style.idleFill !== 'tint') ctx.fillStyle = lane.color;
@@ -215,6 +216,8 @@ function drawCap(ctx: CanvasRenderingContext2D, r: { x: number; y: number; w: nu
   ctx.textAlign = 'center';
   if (style.sub) { ctx.fillStyle = style.subColor || '#334155'; ctx.font = '800 9px ui-sans-serif'; ctx.fillText(style.sub, r.x + r.w / 2, style.subY ?? (r.y + r.h - 10)); }
   if (lane && style.label !== undefined) { ctx.fillStyle = style.labelColor || '#0f172a'; ctx.font = '900 12px ui-sans-serif'; ctx.fillText(style.label, r.x + r.w / 2, style.labelY ?? (r.y + r.h - 26)); }
+  // 시퀀스 진행도 (친 수/전체)
+  if (lane && style.prog) { ctx.fillStyle = style.labelColor || '#0f172a'; ctx.globalAlpha *= 0.85; ctx.font = '900 9px ui-sans-serif'; ctx.fillText(style.prog, r.x + r.w / 2, style.progY ?? (r.y + 14)); ctx.globalAlpha /= 0.85; }
 }
 
 export function drawHighway(f: HighwayFrame) {
@@ -453,18 +456,18 @@ export function drawHighway(f: HighwayFrame) {
     for (const k of g.whiteKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);
       drawCap(ctx, { x: k.x + 1, y: k.y + 2, w: k.w - 2, h: k.h - 4 }, l, pressedKeysMidi.has(k.midi) || (!!l && laneKeyPressed(l)), !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: l ? 'tint' : '#28313f', idleStroke: l ? 'rgba(0,0,0,0)' : '#3d4a5c', radius: 4, label: l?.capLabel || '', sub: settings.showKeyNames ? noteName(k.midi) : undefined, subColor: l ? '#0f172a' : '#66788f' });
+        { idleFill: l ? 'tint' : '#28313f', idleStroke: l ? 'rgba(0,0,0,0)' : '#3d4a5c', radius: 4, label: l?.capLabel || '', sub: settings.showKeyNames ? noteName(k.midi) : undefined, subColor: l ? '#0f172a' : '#66788f', prog: l && f.stepProgress.get(l.mappingId) || undefined, progY: k.y + 16 });
     }
     for (const k of g.blackKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);
       drawCap(ctx, { x: k.x, y: k.y + 2, w: k.w, h: k.h - 2 }, l, pressedKeysMidi.has(k.midi) || (!!l && laneKeyPressed(l)), !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: '#111827', idleStroke: '#000', radius: 3, label: l?.capLabel || '', labelY: k.y + k.h - 10 });
+        { idleFill: '#111827', idleStroke: '#000', radius: 3, label: l?.capLabel || '', labelY: k.y + k.h - 10, prog: l && f.stepProgress.get(l.mappingId) || undefined, progY: k.y + 14 });
     }
     for (const p of g.pads) {
       const l = layout.laneByPadMidi.get(p.midi);
       const pressed = pressedPads.has(p.midi) || (!!l && laneKeyPressed(l));
       drawCap(ctx, p, l, pressed, !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: l ? 'tint' : '#111827', idleStroke: 'lane', radius: 5, label: l?.capLabel || '', labelY: p.y + p.h / 2 + 4, labelColor: pressed ? '#0f172a' : '#f8fafc' });
+        { idleFill: l ? 'tint' : '#111827', idleStroke: 'lane', radius: 5, label: l?.capLabel || '', labelY: p.y + p.h / 2 + 4, labelColor: pressed ? '#0f172a' : '#f8fafc', prog: l && f.stepProgress.get(l.mappingId) || undefined, progY: p.y + p.h - 6 });
       ctx.fillStyle = pressed ? '#0f172a' : '#64748b'; ctx.font = '800 8px ui-sans-serif'; ctx.textAlign = 'left';
       ctx.fillText(String(p.midi), p.x + 4, p.y + 8);
     }
@@ -474,7 +477,7 @@ export function drawHighway(f: HighwayFrame) {
       const l = layout.laneByQwerty.get(k.key);
       const pressed = f.pressedKeys.has(k.key) || (!!l && (l.keyMidis.some(m => pressedKeysMidi.has(m)) || l.padMidis.some(m => pressedPads.has(m))));
       drawCap(ctx, k, l, pressed, !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: l ? 'tint' : '#1f2937', idleStroke: l ? 'lane' : '#334155', radius: 5, label: l ? k.label : undefined, labelY: k.y + k.h / 2 + 4, labelColor: pressed ? '#0f172a' : '#f8fafc' });
+        { idleFill: l ? 'tint' : '#1f2937', idleStroke: l ? 'lane' : '#334155', radius: 5, label: l ? k.label : undefined, labelY: k.y + k.h / 2 + 4, labelColor: pressed ? '#0f172a' : '#f8fafc', prog: l && f.stepProgress.get(l.mappingId) || undefined, progY: k.y + k.h - 6 });
       if (!l) { ctx.fillStyle = '#64748b'; ctx.font = '800 10px ui-sans-serif'; ctx.textAlign = 'center'; ctx.fillText(k.label, k.x + k.w / 2, k.y + k.h / 2 + 4); }
     }
   }
@@ -490,6 +493,7 @@ export function drawHighway(f: HighwayFrame) {
     ctx.fillStyle = pressed ? '#0f172a' : '#f8fafc'; ctx.font = '900 13px ui-sans-serif'; ctx.textAlign = 'center';
     ctx.fillText(l.keys || '—', l.x + l.w / 2, g.hitY + g.panelH / 2 - 6);
     ctx.fillStyle = pressed ? '#0f172a' : hexA(l.color, 0.95); ctx.font = '700 9px ui-sans-serif';
-    ctx.fillText(fitText(ctx, l.name, l.w - 10), l.x + l.w / 2, g.hitY + g.panelH / 2 + 10);
+    const prog = f.stepProgress.get(l.mappingId);
+    ctx.fillText(fitText(ctx, prog ? `${l.name} · ${prog}` : l.name, l.w - 10), l.x + l.w / 2, g.hitY + g.panelH / 2 + 10);
   }
 }

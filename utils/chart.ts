@@ -153,6 +153,15 @@ export function buildChartEvents(song: Song): ChartEvent[] {
   return events;
 }
 
+/** 시퀀스 매핑의 진행도 "친 스텝 수/전체" (예: 2/5). 시퀀스가 아니거나 스텝 개념이 없으면 null */
+export function seqProgress(song: Song, m: InputMapping, stepPositions: Record<string, number>): string | null {
+  if (m.actionType !== 'sequence') return null;
+  const seq = song.sequences.find(s => s.id === m.actionTargetId);
+  if (!seq || !seq.items.length || seq.mode === SequenceMode.AUTO) return null;
+  if (seq.mode === SequenceMode.GROUP && seq.items.some(it => it.type === 'sequence')) return null; // 하위 시퀀스는 인덱스 구조가 다름
+  return `${(stepPositions[seq.id] ?? -1) + 1}/${seq.items.length}`;
+}
+
 /** 이벤트가 하나라도 있는 매핑들을 song.mappings 순서로 */
 export function chartLaneMappings(song: Song, events: ChartEvent[]): InputMapping[] {
   const used = new Set(events.map(e => e.mappingId));
