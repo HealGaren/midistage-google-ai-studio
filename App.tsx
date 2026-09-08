@@ -11,6 +11,7 @@ import { buildChartEvents, chartSettings, activeMappingsFor, beatMs as beatMsOf 
 import { isInputCaptured, isTypingTarget, normalizeKey } from './utils/inputCapture';
 import { getLastProjectName, loadSavedProject, audioUrl } from './utils/projectStorage';
 import { usePrefs } from './utils/prefs';
+import { LK_BUTTON_CH, LK_BUTTONS } from './utils/launchkey';
 import Navigation from './components/Navigation';
 import Editor from './components/Editor';
 import Performance from './components/Performance';
@@ -347,6 +348,12 @@ const App: React.FC = () => {
       
       // Update CC state for visual display
       setCCStates(prev => ({ ...prev, [`${channel}-${cc}`]: value }));
+
+      // 런치키 녹화 버튼(ch16 CC117) 탭 = DAW 탭템포(패스스루) + 차트 박 보정.
+      // 노트가 오래 없는 구간에서 박을 이어가는 용도 — 이미 진행 중일 때만 (멈춘 차트를 멋대로 시작하지 않게)
+      if (channel === LK_BUTTON_CH && cc === LK_BUTTONS[2].cc && value > 0 && conductor.isRunning() && conductor.getMode() === 'live') {
+        conductor.syncBeat();
+      }
       
       // Process CC mappings and send to output
       const output = midiService.getOutputById(project.selectedOutputId);
@@ -376,7 +383,7 @@ const App: React.FC = () => {
       input.removeListener('noteoff', onNoteOff);
       input.removeListener('controlchange', onCC);
     };
-  }, [project.selectedInputId, project.selectedOutputId, project.globalMappings, project.globalCCMappings, currentSong.ccMappings, handleGlobalActionTrigger]);
+  }, [project.selectedInputId, project.selectedOutputId, project.globalMappings, project.globalCCMappings, currentSong.ccMappings, handleGlobalActionTrigger, conductor]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-950 text-slate-100 font-sans">
