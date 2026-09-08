@@ -221,3 +221,23 @@ describe('ConductorCore — unbound 호출', () => {
     expect(core.isRunning()).toBe(false);
   });
 });
+
+describe('ConductorCore — 싱크 탭 연쇄(탭템포)', () => {
+  it('반 박보다 빠르게 두드려도 탭마다 한 박씩 전진하고 템포가 올라간다', () => {
+    const { core, clock } = setup();
+    core.restart();
+    for (let i = 0; i < 8; i++) { core.syncBeat(); clock.advance(BEAT_MS * 0.4); }  // 원래 박의 2.5배 빠르기
+    const d = core.debug() as { anchorBeat: number };
+    expect(d.anchorBeat).toBe(7);                        // 같은 자리 반올림이 아니라 매 탭 +1
+    expect(core.getBpm()).toBeGreaterThan(67);
+  });
+  it('한참 쉬었다 다시 탭하면 연쇄가 끊기고 가까운 박으로 스냅한다', () => {
+    // 템포 고정·홀드 해제로 raw 진행을 단순화
+    const { core, clock } = setup({ tempoFollow: 'off', holdForNotes: false });
+    core.restart();
+    core.syncBeat(); clock.advance(BEAT_MS * 0.4); core.syncBeat();   // 연쇄 → beat 1
+    clock.advance(BEAT_MS * 10);                                      // 체인 시간 초과, raw = 11
+    core.syncBeat();
+    expect((core.debug() as { anchorBeat: number }).anchorBeat).toBe(11); // +1 이 아니라 반올림 스냅
+  });
+});

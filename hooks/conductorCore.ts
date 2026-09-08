@@ -66,6 +66,8 @@ export class ConductorCore {
   private status = new Map<string, EventStatus>();
   private ptr = 0;
   private lastHit: { beat: number; time: number } | null = null;
+  // 싱크 탭 연쇄: 연속 탭은 반올림이 아니라 무조건 한 unit 씩 전진해야 탭 간격이 템포가 된다
+  private lastSnap: { beat: number; time: number; unit: number } | null = null;
   private tempoSamples: { beat: number; time: number }[] = [];
   private counts = { hits: 0, misses: 0, combo: 0 };
 
@@ -117,7 +119,7 @@ export class ConductorCore {
     this.anchorBeat = 0; this.anchorTime = this.now(); this.bpm = this.song.bpm;
     this.running = false; this.holding = false;
     this.status = new Map(this.events.map(e => [e.id, 'pending']));
-    this.ptr = 0; this.lastHit = null; this.tempoSamples = []; this.fx.current = [];
+    this.ptr = 0; this.lastHit = null; this.lastSnap = null; this.tempoSamples = []; this.fx.current = [];
     this.resetCounts();
     this.fresh = true;
   }
@@ -293,6 +295,7 @@ export class ConductorCore {
       this.pushTempoSample(e.beat, now);
       this.adaptTempo();
       this.lastHit = { beat: e.beat, time: now };
+      this.lastSnap = null;   // 실제 노트를 치기 시작하면 탭 연쇄는 끝
     }
     return e;
   }
@@ -321,7 +324,7 @@ export class ConductorCore {
     const target = Math.max(0, beat);
     this.events.forEach(e => this.status.set(e.id, e.beat < target - 0.02 ? 'skipped' : 'pending'));
     this.ptr = 0; this.advancePtr();
-    this.lastHit = null; this.tempoSamples = []; this.resetCounts();
+    this.lastHit = null; this.lastSnap = null; this.tempoSamples = []; this.resetCounts();
     this.reanchor(target, now);
     if (opts.keepRunning === false) this.running = false;
     if (this.mode === 'audio' && this.audio) {
@@ -337,12 +340,25 @@ export class ConductorCore {
     if (span) this.seekBeat(span.startBeat);
   }
 
-  /** 탭 = "지금이 가장 가까운 unit 경계". 기다리는 중이면 기다리는 노트의 박 기준 */
+  /**
+   * 싱크 탭. 첫 탭 = "지금이 가장 가까운 unit 경계"(기다리는 중이면 기다리는 노트의 박 기준).
+   * **연쇄 탭**(이전 탭에서 얼마 안 지났으면)은 반올림하지 않고 무조건 한 unit 전진 —
+   * 빠르게 두드리면 반 박을 못 넘겨 같은 박으로 계속 반올림되는 문제를 막고,
+   * 탭 간격 자체가 템포 추정(회귀)의 근거가 된다(진짜 탭템포).
+   */
   private snapTo(unit: number) {
     const now = this.now();
-    const pos = this.getDisplayPos(now);
-    const base = this.holding ? (this.holdTargetBeat(now) ?? pos) : pos;
-    const target = Math.round(base / unit) * unit;
+    const chainMs = Math.max(1500, 2.5 * unit * this.beatMs());
+    const chained = this.lastSnap && this.lastSnap.unit === unit && now - this.lastSnap.time < chainMs;
+    let target: number;
+    if (chained) {
+      target = this.lastSnap!.beat + unit;
+    } else {
+      const pos = this.getDisplayPos(now);
+      const base = this.holding ? (this.holdTargetBeat(now) ?? pos) : pos;
+      target = Math.round(base / unit) * unit;
+    }
+    this.lastSnap = { beat: target, time: now, unit };
     this.missBefore(target - 1e-6, now);
     this.reanchor(target, now);
     if (!this.running) this.running = true;
