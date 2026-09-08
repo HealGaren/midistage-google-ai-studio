@@ -9,6 +9,8 @@
 //        아랫줄: 36 37 38 39 44 45 46 47
 //    (셋리스트의 "우상단 두 키 = 50,51", "우하단 = 47" 과 일치)
 //  - 노브 8개 = CC 21~28, 채널 1. 모듈레이션 터치스트립 = CC 1.
+//  - 패드 두 줄 오른쪽 버튼(채널 16, 누름 127/뗌 0): 윗줄 '>' = CC104, 아랫줄 Mute = CC105,
+//    Mute 오른쪽 녹화 = CC117. 앱은 그대로 DAW 로 패스스루(글로벌 CC 매핑).
 //
 // 여기서는 폭 W 를 주면 각 키/패드/노브의 사각형을 돌려준다. SVG 뷰(Live 탭)와
 // Game 모드 캔버스가 같은 함수를 써서 떨어지는 노트와 건반이 정확히 맞물린다.
@@ -20,6 +22,12 @@ export const LK_PAD_CHANNEL = 10;
 export const LK_PAD_TOP = [40, 41, 42, 43, 48, 49, 50, 51];
 export const LK_PAD_BOTTOM = [36, 37, 38, 39, 44, 45, 46, 47];
 export const LK_KNOB_CCS = [21, 22, 23, 24, 25, 26, 27, 28];
+export const LK_BUTTON_CH = 16;
+export const LK_BUTTONS = [
+  { cc: 104, label: '>',    row: 0 as const },  // scene/이전곡용
+  { cc: 105, label: 'Mute', row: 1 as const },  // 다음곡용
+  { cc: 117, label: '●',    row: 1 as const },  // 녹화 = 탭템포용 (Mute 오른쪽)
+];
 
 export const isBlackKey = (midi: number) => [1, 3, 6, 8, 10].includes(midi % 12);
 
@@ -27,6 +35,7 @@ export interface Rect { x: number; y: number; w: number; h: number; }
 export interface KeyRect extends Rect { midi: number; black: boolean; }
 export interface PadRect extends Rect { midi: number; row: 0 | 1; col: number; }
 export interface KnobRect { cx: number; cy: number; r: number; cc: number; }
+export interface ButtonRect extends Rect { cc: number; label: string; }
 
 export interface DeviceLayout {
   width: number;
@@ -34,6 +43,7 @@ export interface DeviceLayout {
   keys: KeyRect[];          // 흰건반 먼저, 검은건반 나중(그리기 순서)
   pads: PadRect[];
   knobs: KnobRect[];
+  buttons: ButtonRect[];    // 패드 오른쪽 '>' / Mute / ● (ch16 CC104/105/117)
   keyboard: Rect;           // 건반 전체 영역
   padArea: Rect;
   knobArea: Rect;
@@ -66,9 +76,10 @@ export function deviceLayout(width: number, opts: { compact?: boolean; keyHeight
   const pad = Math.max(4, width * 0.008);
   // 실제 기기 비율: 건반이 전체 폭, 패드 블록은 오른쪽 2/3 쯤에 놓인다
   const keyH = opts.keyHeight ?? Math.max(56, width * 0.14);
+  // 패드 8열 + 버튼 열('>'·Mute) + 녹화 버튼 열 = 10칸
   const padBlockW = width * 0.62;
   const padBlockX = width - padBlockW - pad;
-  const padCell = (padBlockW - pad * 7) / 8;
+  const padCell = (padBlockW - pad * 9) / 10;
   const padH = padCell * 0.78;
   const knobH = opts.compact ? 0 : padCell * 0.9;
 
@@ -84,12 +95,20 @@ export function deviceLayout(width: number, opts: { compact?: boolean; keyHeight
   LK_PAD_TOP.forEach((midi, col) => pads.push({ midi, row: 0, col, x: padBlockX + col * (padCell + pad), y: padArea.y, w: padCell, h: padH }));
   LK_PAD_BOTTOM.forEach((midi, col) => pads.push({ midi, row: 1, col, x: padBlockX + col * (padCell + pad), y: padArea.y + padH + pad, w: padCell, h: padH }));
 
+  // '>'(윗줄)·Mute(아랫줄)는 9열째, 녹화는 Mute 오른쪽 10열째
+  const bx = (col: number) => padBlockX + col * (padCell + pad);
+  const buttons: ButtonRect[] = LK_BUTTONS.map((b, i) => ({
+    cc: b.cc, label: b.label,
+    x: bx(i === 2 ? 9 : 8), y: b.row === 0 ? padArea.y : padArea.y + padH + pad, w: padCell, h: padH,
+  }));
+
   return {
     width,
     height: keyboard.y + keyboard.h + pad,
     keys: keyRects(keyboard, opts.keyLow ?? LK_KEY_LOW),
     pads,
     knobs,
+    buttons,
     keyboard,
     padArea,
     knobArea,

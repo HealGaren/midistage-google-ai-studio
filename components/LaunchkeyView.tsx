@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { Song, InputMapping } from '../types';
-import { deviceLayout, LK_PAD_CHANNEL, LK_KEY_LOW, classifyMappingNotes } from '../utils/launchkey';
+import { deviceLayout, LK_PAD_CHANNEL, LK_KEY_LOW, LK_BUTTON_CH, classifyMappingNotes } from '../utils/launchkey';
 import { laneColor, keyLabel, mappingKeys, mappingTargetName, noteName, activeMappingsFor } from '../utils/chart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,6 +127,23 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
                   </text>
                 </>
               )}
+            </g>
+          );
+        })}
+
+        {/* 패드 오른쪽 버튼: '>' / Mute / ●(녹화) — ch16 CC 그대로 DAW 로 감. 누르면 점등 */}
+        {layout.buttons.map(b => {
+          const v = ccStates[`${LK_BUTTON_CH}-${b.cc}`] ?? 0;
+          const lit = v > 0;
+          const isRec = b.cc === 117;
+          return (
+            <g key={b.cc}>
+              <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={isRec ? b.h / 2 : 6}
+                fill={lit ? (isRec ? '#ef4444' : '#e2e8f0') : '#1a2332'}
+                stroke={isRec ? '#7f1d1d' : '#334155'} strokeWidth={1.5} />
+              <text x={b.x + b.w / 2} y={b.y + b.h / 2 + 4} textAnchor="middle"
+                fill={lit ? '#0f172a' : isRec ? '#f87171' : '#94a3b8'} fontSize={b.label.length > 1 ? 10 : 14} fontWeight={900}>{b.label}</text>
+              <text x={b.x + b.w / 2} y={b.y + b.h - 4} textAnchor="middle" fill="#475569" fontSize={7} fontWeight={700}>CC{b.cc}</text>
             </g>
           );
         })}
