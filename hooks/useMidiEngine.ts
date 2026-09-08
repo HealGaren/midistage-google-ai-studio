@@ -32,6 +32,8 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
   // 그룹 모드 전용 마지막 트리거 상태 추적
   const lastGroupTriggerByInstanceRef = useRef<Map<string, { groupIdx: number, subIdx: number }>>(new Map());
   const lastTriggerTimeByMappingRef = useRef<Map<string, number>>(new Map());
+  // 시퀀스별 마지막 스텝 진행 시각 (resetAfterMs 판정용; setSequenceStep 도 찍는다)
+  const lastStepTimeBySeqRef = useRef<Map<string, number>>(new Map());
   
   // Toggle preset state tracking: key = presetId, value = isOn
   const togglePresetStateRef = useRef<Map<string, boolean>>(new Map());
@@ -265,6 +267,13 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
         const lastTime = lastTriggerTimeByMappingRef.current.get(instanceId) || 0;
         if (now - lastTime < 30) return;
         lastTriggerTimeByMappingRef.current.set(instanceId, now);
+        // resetAfterMs: 한참 입력이 없었으면 처음부터 (연속 탭은 이어진다).
+        // 차트가 setSequenceStep 으로 방금 맞춰 놓은 인덱스는 건드리지 않는다(그쪽도 시각을 찍음).
+        if (seq.resetAfterMs) {
+          const lastStep = lastStepTimeBySeqRef.current.get(seqId) || 0;
+          if (now - lastStep > seq.resetAfterMs) stepIndicesRef.current[seqId] = 0;
+        }
+        lastStepTimeBySeqRef.current.set(seqId, now);
         clearSustainedNotes(seqId);
         activeMappingByTargetRef.current.set(seqId, instanceId);
         const currentIndex = stepIndicesRef.current[seqId] || 0;
@@ -426,6 +435,7 @@ export const useMidiEngine = (project: ProjectData, currentSong: Song) => {
     if (seq.mode === SequenceMode.AUTO) return;
     if (seq.mode === SequenceMode.GROUP && seq.items.some(it => it.type === 'sequence')) return;
     const idx = ((index % seq.items.length) + seq.items.length) % seq.items.length;
+    lastStepTimeBySeqRef.current.set(seqId, Date.now()); // 차트가 맞춘 인덱스를 resetAfterMs 가 도로 지우지 않게
     if (stepIndicesRef.current[seqId] === idx) return;
     stepIndicesRef.current[seqId] = idx;
     setStepPositions(prev => ({ ...prev, [seqId]: idx - 1 }));

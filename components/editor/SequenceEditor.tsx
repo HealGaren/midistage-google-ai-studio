@@ -51,6 +51,20 @@ export const SequenceEditor: React.FC<SequenceEditorProps> = ({ sequence, song, 
             </button>
           )}
 
+          {sequence.mode === SequenceMode.STEP && (
+            <div className="flex items-center gap-2 bg-slate-800 p-1.5 rounded-2xl border border-slate-700 shadow-xl"
+                 title="이만큼(ms) 입력이 없으면 다음 탭 때 스텝 1부터 다시 시작. 0/빈칸 = 끄기">
+              <span className="text-[10px] font-black text-slate-500 uppercase px-3">Auto Rewind</span>
+              <input
+                type="number" min={0} step={500} placeholder="off"
+                value={sequence.resetAfterMs ?? ''}
+                onChange={(e) => onUpdate({ resetAfterMs: e.target.value ? Math.max(0, Number(e.target.value)) || undefined : undefined })}
+                className="w-24 bg-slate-900 text-[11px] font-black p-2.5 rounded-xl border border-slate-700 outline-none text-slate-300 focus:border-indigo-500 shadow-inner text-right"
+              />
+              <span className="text-[10px] font-black text-slate-500 uppercase pr-3">ms</span>
+            </div>
+          )}
+
           <div className="flex items-center gap-4 bg-slate-800 p-1.5 rounded-2xl border border-slate-700 shadow-xl">
             <span className="text-[10px] font-black text-slate-500 uppercase px-3">Mode</span>
             <select 

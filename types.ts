@@ -65,6 +65,9 @@ export interface Sequence {
   items: SequenceItem[];
   bpm?: number;
   gridSnap?: number;
+  /** STEP: 이만큼(ms) 입력이 없으면 다음 탭 때 스텝 0부터 다시 시작.
+   *  "가끔 앞부분만 치고 마는" 시퀀스용 — 연속 탭은 이어지고, 한참 뒤 탭은 처음부터. */
+  resetAfterMs?: number;
 }
 
 export type TriggerType = 'midi' | 'keyboard';
