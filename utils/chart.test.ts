@@ -14,6 +14,18 @@ describe('buildChartEvents', () => {
     expect(ev.map(e => e.stepIndex)).toEqual([0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5]);
     expect(ev[0].sequenceId).toBe('seq-rh');
   });
+  it('타점에 못박은 stepIndex 가 카운터를 이기고, 카운터도 그 지점부터 이어 센다', () => {
+    // 시나리오: 어떤 구간에선 시퀀스를 1탭만(항상 스텝 0), 끝 구간에선 0~2 전부 친다
+    const s = makeSong();
+    s.sequences[0].items = s.sequences[0].items.slice(0, 3); // seq-rh 를 3스텝으로
+    s.chart!.patterns[0].hits = [
+      { mappingId: 'm-j', beat: 0, stepIndex: 0 },  // 매 반복 첫 탭 = 항상 스텝 0
+      { mappingId: 'm-j', beat: 2 },                // 명시 없음 → 0 다음이니 1
+    ];
+    s.chart!.sections = [{ id: 'x', name: 'x', bars: 4, patternId: 'pat' }]; // 1마디 패턴 ×4
+    const ev = buildChartEvents(s).filter(e => e.mappingId === 'm-j');
+    expect(ev.map(e => e.stepIndex)).toEqual([0, 1, 0, 1, 0, 1, 0, 1]); // 명시 없이 세면 [0,1,2,0,1,2,0,1]
+  });
   it('패턴 길이로 안 나눠떨어지는 섹션은 잘라내고, 지워진 매핑은 버린다', () => {
     const s = makeSong();
     s.chart!.sections = [{ id: 'x', name: 'x', bars: 1, patternId: 'pat' }];

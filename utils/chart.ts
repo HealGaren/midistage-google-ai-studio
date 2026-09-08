@@ -121,6 +121,7 @@ export function buildChartEvents(song: Song): ChartEvent[] {
             mappingId: hit.mappingId,
             durationBeats: hit.durationBeats || 0,
             sectionIndex,
+            stepIndex: hit.stepIndex, // 명시된 경우만; 아래 카운터 패스에서 확정
           });
         });
       }
@@ -143,7 +144,8 @@ export function buildChartEvents(song: Song): ChartEvent[] {
     // GROUP 모드에서 하위 시퀀스를 품은 경우는 인덱스 구조가 달라 건너뛴다
     if (seq.mode === SequenceMode.GROUP && seq.items.some(it => it.type === 'sequence')) continue;
     if (seq.mode === SequenceMode.AUTO) continue;
-    const n = counters.get(seq.id) || 0;
+    // 타점에 stepIndex 가 못박혀 있으면 그걸 쓰고, 카운터도 그 지점으로 재정렬한다
+    const n = ev.stepIndex ?? (counters.get(seq.id) || 0);
     ev.stepIndex = seq.items.length ? n % seq.items.length : 0;
     ev.sequenceId = seq.id;
     counters.set(seq.id, n + 1);
