@@ -205,7 +205,8 @@ function fitTextRaw(ctx: CanvasRenderingContext2D, text: string, maxW: number): 
 /** 하단 패널의 키캡/패드/건반 하나 */
 function drawCap(ctx: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }, lane: LaneBox | undefined, pressed: boolean, expected: boolean, blink: number,
   style: { idleFill: string; idleStroke: string; radius: number; label?: string; labelY?: number; labelColor?: string; sub?: string; subY?: number; subColor?: string }) {
-  ctx.fillStyle = pressed ? (lane?.color || '#e2e8f0') : lane ? hexA(lane.color, style.idleFill === 'tint' ? 0.35 : 1) : style.idleFill;
+  // 눌림 = 확 밝아짐. 유휴 매핑색이 진해서(검은건반은 꽉 찬 색) 같은 색으로는 티가 안 난다
+  ctx.fillStyle = pressed ? '#f8fafc' : lane ? hexA(lane.color, style.idleFill === 'tint' ? 0.8 : 1) : style.idleFill;
   if (lane && !pressed && style.idleFill !== 'tint') ctx.fillStyle = lane.color;
   roundRect(ctx, r.x, r.y, r.w, r.h, style.radius); ctx.fill();
   if (expected) { ctx.strokeStyle = `rgba(251,191,36,${blink})`; ctx.lineWidth = 3; }
@@ -452,7 +453,7 @@ export function drawHighway(f: HighwayFrame) {
     for (const k of g.whiteKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);
       drawCap(ctx, { x: k.x + 1, y: k.y + 2, w: k.w - 2, h: k.h - 4 }, l, pressedKeysMidi.has(k.midi) || (!!l && laneKeyPressed(l)), !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: l ? 'tint' : '#e5e7eb', idleStroke: 'rgba(0,0,0,0)', radius: 4, label: l?.capLabel || '', sub: settings.showKeyNames ? noteName(k.midi) : undefined });
+        { idleFill: l ? 'tint' : '#8494a8', idleStroke: 'rgba(0,0,0,0)', radius: 4, label: l?.capLabel || '', sub: settings.showKeyNames ? noteName(k.midi) : undefined });
     }
     for (const k of g.blackKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);

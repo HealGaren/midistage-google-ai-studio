@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Song, ActiveNoteState, InputMapping, SequenceMode, CCMapping } from '../types';
 import { LaunchkeyView } from './LaunchkeyView';
-import { activeMappingsFor } from '../utils/chart';
+import { activeMappingsFor, noteName as midiToNoteName } from '../utils/chart';
 import { UiPrefs } from '../utils/prefs';
 
 interface PerformanceProps {
@@ -536,12 +536,6 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
   );
 };
 
-const midiToNoteName = (midi: number) => {
-  const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  const octave = Math.floor(midi / 12) - 1;
-  const name = NOTE_NAMES[midi % 12];
-  return `${name}${octave}`;
-};
 
 // 지휘자 스냅샷이 10Hz 로 App 을 리렌더하므로, 자기 props 가 안 바뀌면 건너뛴다
 export default React.memo(Performance);

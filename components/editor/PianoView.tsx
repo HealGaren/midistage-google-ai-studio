@@ -1,4 +1,5 @@
 
+import { noteName } from '../../utils/chart';
 import React, { useMemo } from 'react';
 
 interface PianoViewProps {
@@ -49,9 +50,5 @@ export const PianoView: React.FC<PianoViewProps> = ({ activePitches, sendNoteOn,
   );
 };
 
-export const midiToNoteName = (midi: number) => {
-  const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  const octave = Math.floor(midi / 12) - 1;
-  const name = NOTE_NAMES[midi % 12];
-  return `${name}${octave}`;
-};
+// 음이름 규약은 utils/chart.noteName 한 곳(C3=60, Studio One 기준)만 쓴다
+export const midiToNoteName = noteName;

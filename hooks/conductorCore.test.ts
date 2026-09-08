@@ -208,3 +208,16 @@ describe('ConductorCore — 리뷰에서 잡은 회귀', () => {
     expect(core.isJudged()).toBe(true);
   });
 });
+
+describe('ConductorCore — unbound 호출', () => {
+  it('메서드를 떼어 넘겨도(this 없이) 동작한다 — UI 가 onClick={conductor.restart} 로 쓴다', () => {
+    const { core } = setup();
+    const { restart, nextBar, toggleRun, getDisplayPos } = core;
+    restart();
+    expect(core.isRunning()).toBe(true);
+    nextBar();
+    expect(getDisplayPos()).toBeCloseTo(6, 3);
+    toggleRun();
+    expect(core.isRunning()).toBe(false);
+  });
+});

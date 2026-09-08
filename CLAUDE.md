@@ -85,5 +85,6 @@ Bundled demo songs are **generated programmatically** (e.g. `createVolcanoSong()
 - Comments and some identifiers are in **Korean**; match the surrounding language when editing a file.
 - Channels are **1–16** in the data model; `midiChannel: 0` / `inputChannel: 0` means **Omni** (match any channel).
 - Velocity in `NoteItem` is normalized **0–1**; CC and raw MIDI values are **0–127**.
+- **Displayed note names use the Studio One / Yamaha convention: middle C (60) = C3** (`utils/chart.noteName`, re-exported as `midiToNoteName` in `PianoView`) so labels match the user's DAW. The legacy-bank parser `noteNameToMidi` in `songImportExport.ts` keeps the old C4=60 convention for old files — don't mix them up.
 - New ids are `uuidv4()` from the `uuid` package.
 - The `@` import alias resolves to the project root (`vite.config.ts`).

@@ -79,6 +79,12 @@ export class ConductorCore {
     this.anchorTime = this.now();
     this.setSong(song);
     this.setEvents(events);
+    // 메서드를 unbound 로 넘겨도(onClick={conductor.restart}) 동작하게 전부 바인드.
+    // (예전 facade 는 화살표 함수라 괜찮았는데, 인스턴스를 그대로 노출하면서 필요해졌다)
+    for (const k of Object.getOwnPropertyNames(ConductorCore.prototype)) {
+      const v = (this as unknown as Record<string, unknown>)[k];
+      if (k !== 'constructor' && typeof v === 'function') (this as unknown as Record<string, unknown>)[k] = (v as (...a: unknown[]) => unknown).bind(this);
+    }
   }
 
   // ── 동기화 ──

@@ -1,5 +1,6 @@
 
 import React, { useMemo, useRef, useState } from 'react';
+import { noteName as midiToNoteName } from '../../utils/chart';
 import { Sequence, Song, SequenceItem, NotePreset } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,10 +14,6 @@ interface TimelineEditorProps {
 const BEAT_WIDTH = 120;
 const SIDE_PADDING = 32;
 
-const midiToNoteName = (midi: number) => {
-  const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  return `${NOTE_NAMES[midi % 12]}${Math.floor(midi / 12) - 1}`;
-};
 
 export const TimelineEditor: React.FC<TimelineEditorProps> = ({ sequence, song, onUpdate, renderItemEditor }) => {
   const timelineRef = useRef<HTMLDivElement>(null);

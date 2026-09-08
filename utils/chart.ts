@@ -310,6 +310,8 @@ export function innerNotesOf(song: Song, ev: ChartEvent): { pitch: number; durat
 }
 
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+/** 표시용 음이름. 옥타브는 Studio One(야마하) 기준 — 가운데 도(60) = C3.
+ *  사용자의 DAW 화면과 같은 이름이 보이게 한다. (레거시 JSON 파서 noteNameToMidi 는 옛 규약 그대로) */
 export function noteName(midi: number): string {
-  return `${NOTE_NAMES[midi % 12]}${Math.floor(midi / 12) - 1}`;
+  return `${NOTE_NAMES[midi % 12]}${Math.floor(midi / 12) - 2}`;
 }

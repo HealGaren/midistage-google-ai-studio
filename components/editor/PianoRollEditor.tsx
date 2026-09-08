@@ -172,7 +172,7 @@ export const PianoRollEditor: React.FC<PianoRollEditorProps> = ({ sequence, song
                         onMouseDown={() => { sendNoteOn(pitch, 0.8, activeChannel, null); setTimeout(() => sendNoteOff(pitch, activeChannel), 300); }}
                         className={`h-[28px] border-b border-slate-950 flex items-center justify-end pr-3 transition-colors cursor-pointer select-none active:bg-indigo-600 ${isHovered ? 'brightness-125 ring-1 ring-inset ring-indigo-500/30' : ''} ${isBlack ? 'bg-slate-950 text-slate-600' : 'bg-white text-slate-900'}`}
                         >
-                            <span className="text-[9px] font-bold pointer-events-none">{pitch % 12 === 0 ? `C${Math.floor(pitch/12)-1}` : (isHovered ? midiToNoteName(pitch) : '')}</span>
+                            <span className="text-[9px] font-bold pointer-events-none">{pitch % 12 === 0 ? midiToNoteName(pitch) : (isHovered ? midiToNoteName(pitch) : '')}</span>
                         </div>
                     );
                 })}
