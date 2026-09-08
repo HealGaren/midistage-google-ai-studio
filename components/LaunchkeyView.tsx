@@ -140,10 +140,10 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
           return (
             <g key={k.midi} {...handlers(ms)}>
               <rect x={k.x + 1} y={k.y} width={k.w - 2} height={k.h} rx={4}
-                fill={pressed ? '#ffffff' : color ? `${color}cc` : '#8494a8'}
-                stroke={expected ? '#f59e0b' : pressed && color ? color : '#0f172a'} strokeWidth={expected || pressed ? 3 : 1}
+                fill={pressed ? '#ffffff' : color ? `${color}cc` : '#28313f'}
+                stroke={expected ? '#f59e0b' : pressed && color ? color : color ? '#0f172a' : '#3d4a5c'} strokeWidth={expected || pressed ? 3 : 1}
                 style={expected ? { animation: 'lkPulse 0.6s ease-in-out infinite' } : undefined} />
-              {showNoteNames && <text x={k.x + k.w / 2} y={k.y + k.h - 8} textAnchor="middle" fill="#1f2937" fontSize={9} fontWeight={800}>{noteName(k.midi)}</text>}
+              {showNoteNames && <text x={k.x + k.w / 2} y={k.y + k.h - 8} textAnchor="middle" fill={color ? '#0f172a' : '#66788f'} fontSize={9} fontWeight={800}>{noteName(k.midi)}</text>}
               {ms && ms.length > 0 && (
                 <text x={k.x + k.w / 2} y={k.y + k.h - 24} textAnchor="middle" fill="#0f172a" fontSize={12} fontWeight={900}>{keyLabel(ms[0]).split(' ')[0]}</text>
               )}

@@ -453,7 +453,7 @@ export function drawHighway(f: HighwayFrame) {
     for (const k of g.whiteKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);
       drawCap(ctx, { x: k.x + 1, y: k.y + 2, w: k.w - 2, h: k.h - 4 }, l, pressedKeysMidi.has(k.midi) || (!!l && laneKeyPressed(l)), !!l && nextLanes.has(l.mappingId), blink,
-        { idleFill: l ? 'tint' : '#8494a8', idleStroke: 'rgba(0,0,0,0)', radius: 4, label: l?.capLabel || '', sub: settings.showKeyNames ? noteName(k.midi) : undefined });
+        { idleFill: l ? 'tint' : '#28313f', idleStroke: l ? 'rgba(0,0,0,0)' : '#3d4a5c', radius: 4, label: l?.capLabel || '', sub: settings.showKeyNames ? noteName(k.midi) : undefined, subColor: l ? '#0f172a' : '#66788f' });
     }
     for (const k of g.blackKeys) {
       const l = layout.laneByKeyMidi.get(k.midi);
