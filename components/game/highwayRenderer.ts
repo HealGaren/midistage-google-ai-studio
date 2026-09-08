@@ -1,6 +1,6 @@
 import { Song, ChartSettings, InputMapping } from '../../types';
 import { ChartEvent, SectionSpan, laneColor, keyLabel, mappingKeys, displayKey, mappingTargetName, sectionColor, noteName } from '../../utils/chart';
-import { highwayGeometry, KeyRect, PadRect, classifyMappingNotes, padOf } from '../../utils/launchkey';
+import { highwayGeometry, KeyRect, PadRect, LK_KEY_LOW, classifyMappingNotes, padOf } from '../../utils/launchkey';
 import { EventStatus, HitFx } from '../../hooks/useConductor';
 import { qwertyLayout, QwertyKey } from '../../utils/qwerty';
 
@@ -77,7 +77,7 @@ export const GUTTER_L = 150;
 export const GUTTER_R = 130;
 
 /** 레인 배치 계산. 폭/레이아웃/곡이 바뀔 때만 다시 한다. */
-export function computeLayout(song: Song, laneMappings: InputMapping[], W: number, H: number, layoutKind: ChartSettings['layout']): Layout {
+export function computeLayout(song: Song, laneMappings: InputMapping[], W: number, H: number, layoutKind: ChartSettings['layout'], keyLow = LK_KEY_LOW): Layout {
   const gutterL = GUTTER_L, gutterR = GUTTER_R;
   const hwX = gutterL, hwW = Math.max(100, W - gutterL - gutterR);
   const panelH = layoutKind === 'device' ? Math.max(90, Math.min(150, H * 0.17)) : layoutKind === 'keyboard' ? Math.max(120, Math.min(200, H * 0.24)) : 64;
@@ -90,12 +90,12 @@ export function computeLayout(song: Song, laneMappings: InputMapping[], W: numbe
 
   let geometry: Geometry;
   if (layoutKind === 'device') {
-    const classified = laneMappings.map(m => ({ m, ...classifyMappingNotes(m) }));
+    const classified = laneMappings.map(m => ({ m, ...classifyMappingNotes(m, keyLow) }));
     const hasPads = classified.some(c => c.padMidis.length > 0);
     const extras = classified.filter(c => c.keyMidis.length === 0 && c.padMidis.length === 0);
     const extraW = extras.length ? Math.min(70, hwW * 0.12) : 0;
     // 하단 패널(건반/패드)은 판정선 바로 아래: y = H - panelH
-    const geo = highwayGeometry(hwW - extraW * extras.length - (extras.length ? 8 : 0), H, panelH, hasPads);
+    const geo = highwayGeometry(hwW - extraW * extras.length - (extras.length ? 8 : 0), H, panelH, hasPads, keyLow);
     const shift = <T extends { x: number }>(r: T): T => ({ ...r, x: r.x + hwX });
     const keys = geo.keys.map(shift);
     const pads = geo.padsBottom.map(shift);
@@ -123,20 +123,20 @@ export function computeLayout(song: Song, laneMappings: InputMapping[], W: numbe
     const qwerty = qwertyLayout({ x: hwX, y: hitY + 4, w: hwW - extraW * extras.length - (extras.length ? 8 : 0), h: panelH - 8 });
     const byKey = new Map(qwerty.map(k => [k.key, k]));
     laneMappings.forEach(m => {
-      const c = classifyMappingNotes(m);
+      const c = classifyMappingNotes(m, keyLow);
       const ks = mappingKeys(m).map(k => byKey.get(k.toLowerCase())).filter((k): k is QwertyKey => !!k);
       if (!ks.length) return;
       const x0 = Math.min(...ks.map(k => k.x)), x1 = Math.max(...ks.map(k => k.x + k.w));
       lanes.push(mk(m, x0, x1 - x0, 'keys', c.keyMidis, c.padMidis));
     });
-    extras.forEach((m, i) => { const c = classifyMappingNotes(m); lanes.push(mk(m, hwX + hwW - extraW * (extras.length - i), extraW - 4, 'extra', c.keyMidis, c.padMidis)); });
+    extras.forEach((m, i) => { const c = classifyMappingNotes(m, keyLow); lanes.push(mk(m, hwX + hwW - extraW * (extras.length - i), extraW - 4, 'extra', c.keyMidis, c.padMidis)); });
     geometry = { gutterL, gutterR, panelH, hitY, hwX, hwW, whiteKeys: [], blackKeys: [], pads: [], hasPads: false, padArea: { x: 0, w: 0 }, qwerty };
   } else {
     const n = Math.max(1, laneMappings.length);
     const gap = 6;
     const lw = (hwW - gap * (n - 1)) / n;
     laneMappings.forEach((m, i) => {
-      const c = classifyMappingNotes(m);
+      const c = classifyMappingNotes(m, keyLow);
       lanes.push(mk(m, hwX + i * (lw + gap), lw, 'extra', c.keyMidis, c.padMidis));
     });
     geometry = { gutterL, gutterR, panelH, hitY, hwX, hwW, whiteKeys: [], blackKeys: [], pads: [], hasPads: false, padArea: { x: 0, w: 0 }, qwerty: [] };

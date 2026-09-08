@@ -26,6 +26,7 @@ interface PerformanceProps {
   expectedMappingIds?: Set<string>;
   prefs: UiPrefs;
   onUpdatePrefs: (p: Partial<UiPrefs>) => void;
+  keyLow: number;
 }
 
 /**
@@ -128,7 +129,7 @@ const DurationBar: React.FC<{ duration: number }> = ({ duration }) => {
   );
 };
 
-const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState, globalCCMappings = [], pressedKeys, pressedMidiNotes, dawBpm, dawBeat, expectedMappingIds, prefs, onUpdatePrefs }) => {
+const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositions, onTrigger, selectedInputId, onUpdateSong, ccStates, getTogglePresetState, globalCCMappings = [], pressedKeys, pressedMidiNotes, dawBpm, dawBeat, expectedMappingIds, prefs, onUpdatePrefs, keyLow }) => {
   // 박자표. 없으면 4/4 로 본다.
   const beatsPerBar = song.beatsPerBar || 4;
   const beatUnit = song.beatUnit || 4;
@@ -357,6 +358,7 @@ const Performance: React.FC<PerformanceProps> = ({ song, activeNotes, stepPositi
                 expectedMappingIds={expectedMappingIds}
                 showLegend={prefs.liveShowLegend}
                 showNoteNames={prefs.liveShowNoteNames}
+                keyLow={keyLow}
                 onTrigger={(m, release) => onTrigger(m.id, m.actionType, m.actionTargetId, release, 'mouse')}
               />
             </section>

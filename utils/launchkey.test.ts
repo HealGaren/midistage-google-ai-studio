@@ -16,6 +16,11 @@ describe('Launchkey Mini MK3 배치', () => {
     expect(classifyMappingNotes(m('', 1, [60, 62]))).toEqual({ keyMidis: [60, 61, 62], padMidis: [] });
     expect(classifyMappingNotes(m('24', 1))).toEqual({ keyMidis: [], padMidis: [] });
   });
+  it('건반 옥타브(keyLow)를 내리면 분류도 따라간다 — 기기 Octave 설정 대응', () => {
+    expect(classifyMappingNotes(m('60', 1), 36)).toEqual({ keyMidis: [60], padMidis: [] });   // 36~60 범위의 맨 위 도
+    expect(classifyMappingNotes(m('72', 1), 36)).toEqual({ keyMidis: [], padMidis: [] });     // 범위 밖
+    expect(classifyMappingNotes(m('36', 1), 36)).toEqual({ keyMidis: [36], padMidis: [] });
+  });
   it('25키 = 흰 15 + 검은 10, 검은건반은 흰건반 경계에 걸친다', () => {
     const ks = keyRects({ x: 0, y: 0, w: 150, h: 40 });
     expect(ks.filter(k => !k.black).length).toBe(15); expect(ks.filter(k => k.black).length).toBe(10);

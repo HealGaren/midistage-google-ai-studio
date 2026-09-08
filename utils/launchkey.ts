@@ -2,8 +2,8 @@
 // Novation Launchkey Mini MK3 의 물리 배치.
 //
 // 이 앱의 셋리스트가 실제로 쓰는 값으로 확정한 것:
-//  - 건반 25키. 사용자의 매핑이 48(C3)~72(C5) 를 쓰므로 그 옥타브 설정을 기본으로 본다.
-//    (Octave 버튼을 옮기면 달라지지만 공연 세팅은 이 범위)
+//  - 건반 25키. 시작 노트는 기기의 Octave 버튼 설정에 따라 다르다 → ProjectData.deviceKeyLow 로
+//    조정(Settings). 기본값은 매핑을 검증했던 48(C3)~72(C5).
 //  - 패드 16개 = 2줄 × 8. Drum 모드 → 채널 10, 노트는 GM 드럼 배치:
 //        윗줄 : 40 41 42 43 48 49 50 51
 //        아랫줄: 36 37 38 39 44 45 46 47
@@ -40,7 +40,7 @@ export interface DeviceLayout {
 }
 
 /** 건반 폭에 맞춰 키 사각형 계산. 흰건반 15개가 폭을 나눠 가진다. */
-export function keyRects(area: Rect, low = LK_KEY_LOW, high = LK_KEY_HIGH): KeyRect[] {
+export function keyRects(area: Rect, low = LK_KEY_LOW, high = low + 24): KeyRect[] {
   const whites: number[] = [];
   for (let n = low; n <= high; n++) if (!isBlackKey(n)) whites.push(n);
   const ww = area.w / whites.length;
@@ -62,7 +62,7 @@ export function keyRects(area: Rect, low = LK_KEY_LOW, high = LK_KEY_HIGH): KeyR
  * 전체 기기 배치. 위에서부터 노브 → 패드 → 건반.
  * `compact` 면 Game 모드 하단처럼 건반+패드만(노브 생략).
  */
-export function deviceLayout(width: number, opts: { compact?: boolean; keyHeight?: number } = {}): DeviceLayout {
+export function deviceLayout(width: number, opts: { compact?: boolean; keyHeight?: number; keyLow?: number } = {}): DeviceLayout {
   const pad = Math.max(4, width * 0.008);
   // 실제 기기 비율: 건반이 전체 폭, 패드 블록은 오른쪽 2/3 쯤에 놓인다
   const keyH = opts.keyHeight ?? Math.max(56, width * 0.14);
@@ -87,7 +87,7 @@ export function deviceLayout(width: number, opts: { compact?: boolean; keyHeight
   return {
     width,
     height: keyboard.y + keyboard.h + pad,
-    keys: keyRects(keyboard),
+    keys: keyRects(keyboard, opts.keyLow ?? LK_KEY_LOW),
     pads,
     knobs,
     keyboard,
@@ -105,12 +105,12 @@ export interface HighwayGeometry {
   padsBottom: PadRect[];    // 하단 패널에 그릴 패드 사각형
 }
 
-export function highwayGeometry(width: number, height: number, panelH: number, hasPads: boolean): HighwayGeometry {
+export function highwayGeometry(width: number, height: number, panelH: number, hasPads: boolean, keyLow = LK_KEY_LOW): HighwayGeometry {
   const gap = 10;
   const padW = hasPads ? Math.min(width * 0.3, 8 * 44) : 0;
   const kbW = width - padW - (hasPads ? gap : 0);
   const keyboard: Rect = { x: 0, y: height - panelH, w: kbW, h: panelH };
-  const keys = keyRects(keyboard);
+  const keys = keyRects(keyboard, keyLow);
   const padArea: Rect = { x: kbW + gap, y: height - panelH, w: padW, h: panelH };
   const cell = padW / 8;
   const padLanes = hasPads ? Array.from({ length: 8 }, (_, col) => ({ midi: LK_PAD_BOTTOM[col], row: 1 as const, col, x: padArea.x + col * cell, w: cell })) : [];
@@ -130,13 +130,13 @@ export function highwayGeometry(width: number, height: number, panelH: number, h
  *  - omni(0) → 건반 범위(48~72)면 건반, 범위 밖이면서 패드 번호면 패드
  *  - 그 외 채널 → 건반 범위 안의 것만
  */
-export function classifyMappingNotes(m: { midiChannel: number; isMidiRange: boolean; midiRangeStart: number; midiRangeEnd: number; midiValue: string }): { keyMidis: number[]; padMidis: number[] } {
+export function classifyMappingNotes(m: { midiChannel: number; isMidiRange: boolean; midiRangeStart: number; midiRangeEnd: number; midiValue: string }, keyLow = LK_KEY_LOW): { keyMidis: number[]; padMidis: number[] } {
   const notes: number[] = [];
   if (m.isMidiRange) { for (let n = m.midiRangeStart; n <= m.midiRangeEnd; n++) notes.push(n); }
   else String(m.midiValue || '').split(',').forEach(s => { const n = parseInt(s.trim(), 10); if (!isNaN(n)) notes.push(n); });
   const keyMidis: number[] = [], padMidis: number[] = [];
   for (const n of notes) {
-    const inKeys = n >= LK_KEY_LOW && n <= LK_KEY_HIGH;
+    const inKeys = n >= keyLow && n <= keyLow + 24;
     if (m.midiChannel === LK_PAD_CHANNEL) { if (padOf(n)) padMidis.push(n); }
     else if (m.midiChannel === 0 && !inKeys && padOf(n)) padMidis.push(n);
     else if (inKeys) keyMidis.push(n);

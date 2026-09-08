@@ -6,6 +6,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { listSavedProjects, loadSavedProject, saveProjectToFolder, deleteSavedProject, toFileName, SavedProjectMeta, rememberLastProject, forgetLastProject, getLastProjectName } from '../utils/projectStorage';
 import { useInputCapture, normalizeKey } from '../utils/inputCapture';
 import { UiPrefs } from '../utils/prefs';
+import { noteName } from '../utils/chart';
+
+/** 예: 48 → "C3 ~ C5 (48~72)" */
+const keyRangeLabel = (low: number) => `${noteName(low)} ~ ${noteName(low + 24)}  (${low}~${low + 24})`;
 
 interface SettingsProps {
   project: ProjectData;
@@ -376,6 +380,19 @@ const Settings: React.FC<SettingsProps> = ({ project, onUpdateProject, prefs, on
               (클럭만 듣고 노트/CC 는 무시하므로 피드백은 생기지 않는다). Studio One 쪽에서는 외장 장치 설정의
               <span className="text-slate-500 font-bold"> &quot;MIDI 클럭 보내기&quot; </span>
               가 켜져 있어야 한다. <span className="text-slate-500">표시 전용이며 곡 BPM 은 바뀌지 않는다.</span>
+            </p>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Launchkey 건반 옥타브 (표시)</label>
+            <select value={project.deviceKeyLow ?? 48} onChange={(e) => onUpdateProject(prev => ({ ...prev, deviceKeyLow: parseInt(e.target.value) }))} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-all appearance-none">
+              {[24, 36, 48, 60].map(low => (
+                <option key={low} value={low}>{keyRangeLabel(low)}{low === 48 ? ' (기본)' : ''}</option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              기기의 Octave 버튼 설정에 맞춰 화면 건반(Live 뷰·Game 하이웨이)의 범위를 옮긴다.
+              <span className="text-slate-500"> 맨 오른쪽 도를 눌렀을 때 그림의 맨 오른쪽 키가 반응하면 맞은 것.</span>
+              매핑의 MIDI 노트 번호는 바뀌지 않는다 — 실제로 안 눌리는 매핑이 생기면 옥타브 버튼을 옮기거나 매핑을 조정할 것.
             </p>
           </div>
         </div>

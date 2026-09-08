@@ -24,6 +24,7 @@ interface Props {
   onReplayTake: (takeId: string) => void;
   activeMappings: InputMapping[];
   audioRef: RefObject<HTMLAudioElement | null>;
+  keyLow: number;
   audioSrc?: string;
   audioFile?: string;
   onPickLocalAudio: (file: File) => void;
@@ -39,7 +40,7 @@ const Btn: React.FC<{ onClick: () => void; title?: string; active?: boolean; dan
   </button>
 );
 
-const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, events, pressedKeys, pressedMidiNotes, onUpdateSong, recorder, onReplayTake, activeMappings, audioRef, audioSrc, audioFile, onPickLocalAudio }) => {
+const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, events, pressedKeys, pressedMidiNotes, onUpdateSong, recorder, onReplayTake, activeMappings, audioRef, audioSrc, audioFile, onPickLocalAudio, keyLow }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 500 });
@@ -76,7 +77,7 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
   // 레인 배치와 노트 라벨은 곡/차트가 바뀔 때만 다시 계산 (프레임마다 X)
   // 배치는 layout 종류에만, 라벨은 showInnerNotes 에만 달려 있다 — 표시 토글을 켜고 끌 때 다시 계산하지 않게
   const layoutKind = settings.layout;
-  const layout = useMemo(() => computeLayout(song, laneMappings, size.w, size.h, layoutKind), [song.mappings, song.presets, song.sequences, laneMappings, size, layoutKind]); // eslint-disable-line react-hooks/exhaustive-deps
+  const layout = useMemo(() => computeLayout(song, laneMappings, size.w, size.h, layoutKind, keyLow), [song.mappings, song.presets, song.sequences, laneMappings, size, layoutKind, keyLow]); // eslint-disable-line react-hooks/exhaustive-deps
   const labels = useMemo(() => {
     const m = new Map<string, EventLabel>();
     for (const e of events) {

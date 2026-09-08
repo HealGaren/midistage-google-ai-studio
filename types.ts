@@ -235,6 +235,8 @@ export interface ProjectData {
   selectedOutputId: string;
   // DAW 가 보내는 MIDI 클럭을 듣고 현재 템포를 표시하기 위한 입력. 표시 전용이라 없어도 된다.
   selectedClockInputId?: string;
+  // 런치키 건반의 가장 낮은 노트(옥타브 설정). 없으면 48(C3~C5). 표시/키 분류에만 쓰인다.
+  deviceKeyLow?: number;
   globalMappings: GlobalMapping[];
   globalCCMappings: CCMapping[];
 }

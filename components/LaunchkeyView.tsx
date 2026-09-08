@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { Song, InputMapping } from '../types';
-import { deviceLayout, LK_PAD_CHANNEL, classifyMappingNotes } from '../utils/launchkey';
+import { deviceLayout, LK_PAD_CHANNEL, LK_KEY_LOW, classifyMappingNotes } from '../utils/launchkey';
 import { laneColor, keyLabel, mappingKeys, mappingTargetName, noteName, activeMappingsFor } from '../utils/chart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -21,17 +21,18 @@ interface Props {
   className?: string;
   showLegend?: boolean;
   showNoteNames?: boolean;
+  keyLow?: number;
 }
 
 interface Placement { keys: Map<number, InputMapping[]>; pads: Map<number, InputMapping[]>; unplaced: InputMapping[]; }
 
 /** 현재 씬의 매핑이 기기의 어느 키/패드에 해당하는지 (Game 하이웨이와 같은 분류 규칙) */
-export function placeMappings(song: Song): Placement {
+export function placeMappings(song: Song, keyLow = LK_KEY_LOW): Placement {
   const keys = new Map<number, InputMapping[]>();
   const pads = new Map<number, InputMapping[]>();
   const unplaced: InputMapping[] = [];
   activeMappingsFor(song).forEach(m => {
-    const c = classifyMappingNotes(m);
+    const c = classifyMappingNotes(m, keyLow);
     c.keyMidis.forEach(n => keys.set(n, [...(keys.get(n) || []), m]));
     c.padMidis.forEach(n => pads.set(n, [...(pads.get(n) || []), m]));
     if (!c.keyMidis.length && !c.padMidis.length) unplaced.push(m);
@@ -39,10 +40,10 @@ export function placeMappings(song: Song): Placement {
   return { keys, pads, unplaced };
 }
 
-export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiNotes, ccStates, expectedMappingIds, onTrigger, className, showLegend = true, showNoteNames = true }) => {
+export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiNotes, ccStates, expectedMappingIds, onTrigger, className, showLegend = true, showNoteNames = true, keyLow = LK_KEY_LOW }) => {
   const W = 1000;
-  const layout = useMemo(() => deviceLayout(W), []);
-  const placement = useMemo(() => placeMappings(song), [song]);
+  const layout = useMemo(() => deviceLayout(W, { keyLow }), [keyLow]);
+  const placement = useMemo(() => placeMappings(song, keyLow), [song, keyLow]);
   // 마우스로 누르고 있는 매핑들 — 키보드/MIDI 눌림과 별개로 추적해야 드래그해 나가도 뗄 수 있다
   const mouseHeld = useRef<InputMapping[] | null>(null);
 
@@ -172,13 +173,13 @@ export const LaunchkeyView: React.FC<Props> = ({ song, pressedKeys, pressedMidiN
         <div className="mt-3 flex flex-wrap gap-2">
           {activeMappingsFor(song).map(m => {
             const color = laneColor(song, m.id);
-            const c = classifyMappingNotes(m);
+            const c = classifyMappingNotes(m, keyLow);
             const active = isKeyPressed(m) || c.keyMidis.some(n => pressedPitches.keys.has(n)) || c.padMidis.some(n => pressedPitches.pads.has(n));
             const unplaced = placement.unplaced.includes(m);
             return (
               <button key={m.id} onMouseDown={() => press([m])} onMouseUp={releaseHeld} onMouseLeave={releaseHeld}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all ${active ? 'bg-white text-slate-900 border-white' : 'bg-slate-900/70 text-slate-300 border-slate-800 hover:border-slate-600'}`}
-                title={unplaced ? '기기 범위(건반 48~72 / 패드 36~51) 밖이라 그림에는 없음 — 여기서 마우스로 칠 수 있음' : '마우스로 트리거'}>
+                title={unplaced ? `기기 범위(건반 ${keyLow}~${keyLow + 24} / 패드 36~51) 밖이라 그림에는 없음 — 여기서 마우스로 칠 수 있음` : '마우스로 트리거'}>
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
                 <span className="font-black">{keyLabel(m) || '—'}</span>
                 <span className="opacity-70">{mappingTargetName(song, m)}</span>
