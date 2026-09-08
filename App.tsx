@@ -259,7 +259,9 @@ const App: React.FC = () => {
       case 'CHART_NEXT_SECTION': conductor.nextSection(); break;
       case 'CHART_PREV_SECTION': conductor.prevSection(); break;
       case 'CHART_TOGGLE_RUN': conductor.toggleRun(); break;
-      case 'CHART_RESTART': conductor.restart(); break;
+      // 게임 초기화 = 곡을 처음부터: 차트 0 + 시퀀스 되감기 + 울리던 지속음 정리.
+      // (패닉 RESET_SEQUENCES 는 위치를 안 건드리는 "연주만 리셋" — 역할이 다르다)
+      case 'CHART_RESTART': resetAllSequences(); conductor.restart(); break;
       case 'TOGGLE_FOCUS': toggleFocus(); break;
     }
   }, [project.songs, currentSongId, resetAllSequences, conductor, toggleFocus]);
