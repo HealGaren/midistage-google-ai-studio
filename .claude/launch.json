@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "midistage",
+      "runtimeExecutable": "./node_modules/.bin/vite",
+      "runtimeArgs": ["--port", "3000"],
+      "port": 3000
+    }
+  ]
+}

@@ -121,7 +121,7 @@ export function createApexSong(): Song {
     createPreset(`Interlude ${index + 1}`, [makeNote(pitch, 3, MELODIC_VELOCITY)], interludeFolderId)
   );
 
-  // 간주 베이스 페달 — C3(48) 한 건반에만 걸리는 고정음 Eb5
+  // 간주 베이스 페달 — F2(53) 한 건반에만 걸리는 고정음 (하드웨어 최저 Eb/E 건반 고장으로 F부터 사용)
   const interludeBassPreset = createPreset(
     'Interlude Bass',
     [makeNote(75, 3, MELODIC_VELOCITY)],
@@ -214,13 +214,14 @@ export function createApexSong(): Song {
   // ── 입력 매핑 ────────────────────────────────────────────────────────
   // 구 엔진은 조건 배열의 첫 매치만 실행했지만 MidiStage는 매칭된 매핑을 전부
   // 실행한다. 그래서 구 noteLt 조건을 그대로 옮기지 않고, 서로 겹치지 않게
-  // 재계산한 범위를 쓴다. (48만 비워 두고 그 양옆을 Interlude로 나눈 것)
+  // 재계산한 범위를 쓴다. (베이스 53만 비워 두고 그 양옆을 Interlude로 나눈 것 —
+  // 최저 Eb/E 건반 고장으로 건반 연주는 F2(53)부터만 쓴다)
   const mappings: InputMapping[] = [
     // 건반 (입력 ch1)
     {
       id: uuidv4(),
       keyboardValue: 'a',
-      midiValue: '48',
+      midiValue: '53',
       midiChannel: 1,
       isMidiRange: false,
       midiRangeStart: 0,
@@ -237,7 +238,7 @@ export function createApexSong(): Song {
       midiChannel: 1,
       isMidiRange: true,
       midiRangeStart: 0,
-      midiRangeEnd: 47,
+      midiRangeEnd: 52,
       actionType: 'sequence',
       actionTargetId: interludeSequence.id,
       isEnabled: true,
@@ -249,7 +250,7 @@ export function createApexSong(): Song {
       midiValue: '',
       midiChannel: 1,
       isMidiRange: true,
-      midiRangeStart: 49,
+      midiRangeStart: 54,
       midiRangeEnd: 59,
       actionType: 'sequence',
       actionTargetId: interludeSequence.id,
