@@ -66,7 +66,9 @@ const GameMode: React.FC<Props> = ({ song, conductor, snapshot: snap, settings, 
   const sections = song.chart?.sections;
   const spans = useMemo(() => sectionSpans(song), [sections, bpb]); // eslint-disable-line react-hooks/exhaustive-deps
   const bars = totalBars(song);
-  const hasChart = !!song.chart && events.length > 0;
+  // 노트(이벤트)가 없어도 송폼(섹션)만 있으면 차트로 취급 — ▶ Run/싱크 탭으로
+  // 템포대로 흘려보내며 섹션·가사를 따라갈 수 있다 (지휘자는 대기 노트가 없으면 자유 진행).
+  const hasChart = !!song.chart && (events.length > 0 || (song.chart.sections?.length || 0) > 0);
 
   // 레인: 차트가 쓰는 매핑. 차트가 없으면 현재 씬의 매핑 전부(눌림 모니터로라도 쓰이게)
   const laneMappings = useMemo(() => hasChart ? chartLaneMappings(song, events) : activeMappings, [hasChart, song.mappings, events, activeMappings]); // eslint-disable-line react-hooks/exhaustive-deps
